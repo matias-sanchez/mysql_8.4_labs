@@ -61,6 +61,36 @@ $ sudo docker exec -it mypercona84 mysql -u root -e "SHOW PLUGINS;" | grep mysql
 
 ---
 
+### **3. Testing User Creation**
+
+#### **Default Behavior in MySQL 8.4 Without Plugin Activation**
+1. Attempt to create a user using the `mysql_native_password` plugin:
+   ```sql
+   CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';
+   ```
+   **Expected Output**:
+   ```sql
+   ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
+   ```
+   **Explanation**: The `mysql_native_password` plugin is disabled by default in MySQL 8.4, and attempts to use it without enabling the plugin result in an error.
+
+2. Create a user with the default authentication plugin:
+   ```sql
+   mysql> CREATE USER 'default_user'@'localhost' IDENTIFIED BY 'password123';
+   mysql> SELECT user, host, plugin FROM mysql.user WHERE user = 'default_user';
+   ```
+   **Expected Output**:
+   ```sql
+   +--------------+-----------+-----------------------+
+   | user         | host      | plugin                |
+   +--------------+-----------+-----------------------+
+   | default_user | localhost | caching_sha2_password |
+   +--------------+-----------+-----------------------+
+   ```
+   **Explanation**: In MySQL 8.4, the default authentication plugin is `caching_sha2_password`.
+
+--- 
+
 ### **3. Error Encountered in MySQL 8.4.2-2**
 
 When attempting to configure `default_authentication_plugin` in MySQL 8.4.2-2, the following error was encountered:
