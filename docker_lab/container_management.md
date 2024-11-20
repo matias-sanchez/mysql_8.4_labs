@@ -1,7 +1,3 @@
-Below is the fully optimized version of your laboratory guide with modifications to include the mounted directories for MySQL configurations, logs, and data. This updated guide ensures clarity, consistency, and usability for all technical users.
-
----
-
 # **Lab Guide: Setting Up MySQL 8.0 and MySQL 8.4 Containers with Mounted Directories**
 
 This guide provides comprehensive instructions to create and manage Docker containers for **MySQL 8.0** and **MySQL 8.4**, ensuring accessible configuration, logs, and data directories mounted on the host.
