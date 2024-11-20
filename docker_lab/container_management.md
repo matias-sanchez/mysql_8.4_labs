@@ -157,6 +157,16 @@ sudo docker exec -it mypercona80 mysql -u root
 sudo docker exec -it mypercona84 mysql -u root
 ```
 
+### **Connect to Bash Shell in MySQL 8.0 Container**
+```bash
+sudo docker exec -it mypercona80 bash
+```
+
+### **Connect to Bash Shell in MySQL 8.4 Container**
+```bash
+sudo docker exec -it mypercona84 bash
+```
+
 ---
 
 ## **7. Manage Containers**
