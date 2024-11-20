@@ -1,12 +1,22 @@
-To maintain clear identification of Dockerfiles and images for MySQL 8.0 and MySQL 8.4, follow these steps:
+# **Lab Guide: Setting Up MySQL 8.0 and MySQL 8.4 Containers**
+
+This guide provides step-by-step instructions to create and manage Docker containers for **MySQL 8.0** and **MySQL 8.4**, ensuring clear identification of Dockerfiles, images, and container names.
 
 ---
 
-### **Step 1: Create Separate Dockerfiles**
-Name the Dockerfiles clearly to differentiate between MySQL 8.0 and MySQL 8.4.
+## **1. Prepare the Workspace**
+Create a dedicated directory for the lab setup:
+```bash
+mkdir ~/lab
+cd ~/lab
+```
 
-#### **Dockerfile for MySQL 8.0**
-Create a file named `Dockerfile-mysql80` with the following content:
+---
+
+## **2. Create Separate Dockerfiles**
+
+### **Dockerfile for MySQL 8.0**
+Create a file named `Dockerfile-mysql80` in the `~/lab` directory with the following content:
 
 ```dockerfile
 # Use AlmaLinux 8 as a base image (binary-compatible with RHEL)
@@ -41,8 +51,10 @@ EXPOSE 3306
 CMD ["mysqld_safe"]
 ```
 
-#### **Dockerfile for MySQL 8.4**
-Create another file named `Dockerfile-mysql84` with the following content:
+---
+
+### **Dockerfile for MySQL 8.4**
+Create another file named `Dockerfile-mysql84` in the same directory:
 
 ```dockerfile
 # Use AlmaLinux 8 as a base image (binary-compatible with RHEL)
@@ -80,61 +92,51 @@ CMD ["mysqld_safe"]
 
 ---
 
-### **Step 2: Build Docker Images**
+## **3. Build Docker Images**
+
 Use the `-f` option to specify the Dockerfile during the build process.
 
-#### **Build the Image for MySQL 8.0**
-Run the following command to build the image for MySQL 8.0:
-
+### **Build Image for MySQL 8.0**
 ```bash
 sudo docker build -f Dockerfile-mysql80 -t percona-mysql-8.0 .
 ```
-
 - `-f Dockerfile-mysql80`: Specifies the Dockerfile for MySQL 8.0.
 - `-t percona-mysql-8.0`: Tags the image as `percona-mysql-8.0`.
 
-#### **Build the Image for MySQL 8.4**
-Run the following command to build the image for MySQL 8.4:
-
+### **Build Image for MySQL 8.4**
 ```bash
 sudo docker build -f Dockerfile-mysql84 -t percona-mysql-8.4 .
 ```
-
 - `-f Dockerfile-mysql84`: Specifies the Dockerfile for MySQL 8.4.
 - `-t percona-mysql-8.4`: Tags the image as `percona-mysql-8.4`.
 
 ---
 
-### **Step 3: Run Containers**
-Use the built images to run separate containers for MySQL 8.0 and MySQL 8.4.
+## **4. Run Containers**
 
-#### **Run the MySQL 8.0 Container**
+### **Run MySQL 8.0 Container**
 ```bash
 sudo docker run --name mypercona80 -d -p 33080:3306 percona-mysql-8.0
 ```
-
 - `--name mypercona80`: Names the container `mypercona80`.
-- `-p 33080:3306`: Maps port 3306 in the container to port 33080 on the host.
+- `-p 33080:3306`: Maps container port 3306 to host port 33080.
 
-#### **Run the MySQL 8.4 Container**
+### **Run MySQL 8.4 Container**
 ```bash
 sudo docker run --name mypercona84 -d -p 33084:3306 percona-mysql-8.4
 ```
-
 - `--name mypercona84`: Names the container `mypercona84`.
-- `-p 33084:3306`: Maps port 3306 in the container to port 33084 on the host.
+- `-p 33084:3306`: Maps container port 3306 to host port 33084.
 
 ---
 
-### **Step 4: Verify the Running Containers**
-Check if both containers are running:
-
+## **5. Verify Running Containers**
+Check if the containers are running:
 ```bash
 sudo docker ps | grep -i mypercona
 ```
 
-You should see both containers:
-
+**Expected Output**:
 ```bash
 CONTAINER ID   IMAGE                 COMMAND                  CREATED          STATUS         PORTS                                           NAMES
 f9265e4f0258   percona-mysql-8.4     "mysqld_safe"            16 seconds ago   Up 14 seconds   0.0.0.0:33084->3306/tcp, :::33084->3306/tcp    mypercona84
@@ -143,41 +145,47 @@ d2175c3d8240   percona-mysql-8.0     "mysqld_safe"            30 seconds ago   U
 
 ---
 
-### **Step 5: Test MySQL Instances**
-#### **Connect to MySQL 8.0**
+## **6. Test MySQL Instances**
+
+### **Connect to MySQL 8.0**
 ```bash
 sudo docker exec -it mypercona80 mysql -u root
 ```
 
-#### **Connect to MySQL 8.4**
+### **Connect to MySQL 8.4**
 ```bash
 sudo docker exec -it mypercona84 mysql -u root
 ```
 
 ---
 
-### **Step 6: Manage Containers**
-- **Stop Containers**:
-  ```bash
-  sudo docker stop mypercona80
-  sudo docker stop mypercona84
-  ```
-- **Restart Containers**:
-  ```bash
-  sudo docker start mypercona80
-  sudo docker start mypercona84
-  ```
-- **Remove Containers**:
-  ```bash
-  sudo docker rm mypercona80
-  sudo docker rm mypercona84
-  ```
+## **7. Manage Containers**
 
-### **Step 7: Recreate Containers**
+### **Stop Containers**
+```bash
+sudo docker stop mypercona80
+sudo docker stop mypercona84
+```
 
-To recreate the MySQL containers, follow these steps:
+### **Restart Containers**
+```bash
+sudo docker start mypercona80
+sudo docker start mypercona84
+```
 
-#### **Recreate MySQL 8.0 Container**
+### **Remove Containers**
+```bash
+sudo docker rm mypercona80
+sudo docker rm mypercona84
+```
+
+---
+
+## **8. Recreate Containers**
+
+In the event that a straightforward forward command is required to recreate one container run one of the following
+
+### **Recreate MySQL 8.0 Container**
 ```bash
 cd ~/lab
 sudo docker stop mypercona80 && \
@@ -185,7 +193,7 @@ sudo docker rm mypercona80 && \
 sudo docker run --name mypercona80 -d -p 33080:3306 percona-mysql-8.0
 ```
 
-#### **Recreate MySQL 8.4 Container**
+### **Recreate MySQL 8.4 Container**
 ```bash
 cd ~/lab
 sudo docker stop mypercona84 && \
@@ -195,7 +203,15 @@ sudo docker run --name mypercona84 -d -p 33084:3306 percona-mysql-8.4
 
 ---
 
-### Summary of Image Names and Dockerfiles:
-- **Dockerfiles**: `Dockerfile-mysql80`, `Dockerfile-mysql84`
-- **Image Names**: `percona-mysql-8.0`, `percona-mysql-8.4`
-- **Container Names**: `mypercona80`, `mypercona84`
+## **9. Summary**
+
+### **Files**
+- Dockerfiles: `Dockerfile-mysql80`, `Dockerfile-mysql84`
+
+### **Images**
+- MySQL 8.0: `percona-mysql-8.0`
+- MySQL 8.4: `percona-mysql-8.4`
+
+### **Containers**
+- MySQL 8.0: `mypercona80`
+- MySQL 8.4: `mypercona84`
