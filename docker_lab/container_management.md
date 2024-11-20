@@ -173,6 +173,26 @@ sudo docker exec -it mypercona84 mysql -u root
   sudo docker rm mypercona84
   ```
 
+### **Step 7: Recreate Containers**
+
+To recreate the MySQL containers, follow these steps:
+
+#### **Recreate MySQL 8.0 Container**
+```bash
+cd ~/lab
+sudo docker stop mypercona80 && \
+sudo docker rm mypercona80 && \
+sudo docker run --name mypercona80 -d -p 33080:3306 percona-mysql-8.0
+```
+
+#### **Recreate MySQL 8.4 Container**
+```bash
+cd ~/lab
+sudo docker stop mypercona84 && \
+sudo docker rm mypercona84 && \
+sudo docker run --name mypercona84 -d -p 33084:3306 percona-mysql-8.4
+```
+
 ---
 
 ### Summary of Image Names and Dockerfiles:

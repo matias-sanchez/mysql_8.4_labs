@@ -1,6 +1,6 @@
 ## **Findings: Authentication Changes in MySQL 8.0 vs 8.4**
 
-This document summarizes the findings from a lab-based comparison between **MySQL 8.0.39-30** and **MySQL 8.4.2-2**, focusing on authentication plugin configurations and behavior.
+This document summarizes the findings from the lab-based comparison between **MySQL 8.0.39-30** and **MySQL 8.4.2-2**, focusing on authentication plugin configurations and behavior.
 
 ---
 
