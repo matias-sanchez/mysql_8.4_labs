@@ -11,6 +11,17 @@ Create the necessary directory structure for mounting MySQL configurations, logs
 ```bash
 mkdir -p ~/lab/mysql80/{config,logs,data}
 mkdir -p ~/lab/mysql84/{config,logs,data}
+
+
+sudo docker run --rm percona-mysql-8.0 cat /etc/my.cnf > ~/lab/mysql80/config/my.cnf
+sudo docker run --rm percona-mysql-8.4 cat /etc/my.cnf > ~/lab/mysql84/config/my.cnf
+
+
+sudo chown -R 999:999 ~/lab/mysql80/{config,logs,data}
+sudo chmod -R 750 ~/lab/mysql80/{config,logs,data}
+
+sudo chown -R 999:999 ~/lab/mysql84/{config,logs,data}
+sudo chmod -R 750 ~/lab/mysql84/{config,logs,data}
 ```
 
 ---
@@ -46,6 +57,9 @@ RUN yum -y module disable mysql
 # Install Percona Server 8.0
 RUN yum -y install percona-server-server
 
+# Initialize MySQL data directory
+RUN mysqld --initialize-insecure --user=mysql
+
 # Expose MySQL port
 EXPOSE 3306
 
@@ -79,6 +93,9 @@ RUN yum -y module disable mysql
 
 # Install Percona Server 8.4
 RUN yum -y install percona-server-server
+
+# Initialize MySQL data directory
+RUN mysqld --initialize-insecure --user=mysql
 
 # Expose MySQL port
 EXPOSE 3306
