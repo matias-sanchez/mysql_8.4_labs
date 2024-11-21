@@ -1,156 +1,249 @@
-## **Findings: Authentication Changes in MySQL 8.0 vs 8.4**
+# **Lab Guide: Authentication Plugin Behavior in MySQL 8.0 vs MySQL 8.4**
 
-This document summarizes the findings from the lab-based comparison between **MySQL 8.0.39-30** and **MySQL 8.4.2-2**, focusing on authentication plugin configurations and behavior.
+This lab demonstrates the differences in authentication plugin behavior between **MySQL 8.0.39-30** and **MySQL 8.4.2-2** using Docker containers. The focus is on observing default settings, testing user creation, and enabling legacy plugins when necessary.
 
 ---
 
-### **1. MySQL Version Comparison**
+## **1. Lab Environment Setup**
 
-#### **MySQL 8.0.39-30**
-The following outputs were observed for MySQL 8.0.39-30:
+### **Prepare the Workspace**
+
+Create directories for logs, data, and configuration:
+
+```bash
+mkdir -p ~/lab/mysql80/{logs,data}
+mkdir -p ~/lab/mysql84/{logs,data}
+
+sudo chmod -R 777 ~/lab/mysql80/{logs,data}
+sudo chmod -R 777 ~/lab/mysql84/{logs,data}
+```
+
+### **Initialize Configuration and Data**
+
+Extract the default `my.cnf` and initialize the data directories from the MySQL images:
+
+```bash
+# For MySQL 8.0
+sudo docker run --rm \
+  -v ~/lab/mysql80/data:/host-mysql-data \
+  -v ~/lab/mysql80:/host-config \
+  percona-mysql-8.0 \
+  bash -c "cat /etc/my.cnf > /host-config/my.cnf && cp -R /var/lib/mysql/* /host-mysql-data"
+
+# For MySQL 8.4
+sudo docker run --rm \
+  -v ~/lab/mysql84/data:/host-mysql-data \
+  -v ~/lab/mysql84:/host-config \
+  percona-mysql-8.4 \
+  bash -c "cat /etc/my.cnf > /host-config/my.cnf && cp -R /var/lib/mysql/* /host-mysql-data"
+```
+
+---
+
+## **2. Run Containers**
+
+Start the MySQL containers with the mounted configuration, logs, and data directories.
+
+### **Run MySQL 8.0 Container**
+
+```bash
+sudo docker run --name mypercona80 \
+  -d \
+  -p 33080:3306 \
+  -v ~/lab/mysql80/my.cnf:/etc/my.cnf \
+  -v ~/lab/mysql80/logs:/var/log/mysql \
+  -v ~/lab/mysql80/data:/var/lib/mysql \
+  percona-mysql-8.0
+```
+
+### **Run MySQL 8.4 Container**
+
+```bash
+sudo docker run --name mypercona84 \
+  -d \
+  -p 33084:3306 \
+  -v ~/lab/mysql84/my.cnf:/etc/my.cnf \
+  -v ~/lab/mysql84/logs:/var/log/mysql \
+  -v ~/lab/mysql84/data:/var/lib/mysql \
+  percona-mysql-8.4
+```
+
+---
+
+## **3. Check Authentication Plugin Behavior**
+
+### **Verify Default Authentication Plugin**
+
+#### **MySQL 8.0**
+Run the following command to check the default authentication plugin in MySQL 8.0:
+
+```bash
+sudo docker exec -it mypercona80 mysql -u root -e "SHOW VARIABLES LIKE 'default_authentication_plugin';"
+```
+
+**Expected Output**:
 ```sql
-mysql> SELECT @@version;
-+-----------+
-| @@version |
-+-----------+
-| 8.0.39-30 |
-+-----------+
-1 row in set (0.00 sec)
-
-mysql> SHOW VARIABLES LIKE 'default_authentication_plugin';
 +-------------------------------+-----------------------+
 | Variable_name                 | Value                 |
 +-------------------------------+-----------------------+
 | default_authentication_plugin | caching_sha2_password |
-+-------------------------------+
-1 row in set (0.01 sec)
++-------------------------------+-----------------------+
 ```
 
-#### **MySQL 8.4.2-2**
-In contrast, MySQL 8.4.2-2 produced different results:
-```sql
-mysql> SELECT @@version;
-+-----------+
-| @@version |
-+-----------+
-| 8.4.2-2   |
-+-----------+
-1 row in set (0.00 sec)
+#### **MySQL 8.4**
+Run the same command for MySQL 8.4:
 
-mysql> SHOW VARIABLES LIKE 'default_authentication_plugin';
+```bash
+sudo docker exec -it mypercona84 mysql -u root -e "SHOW VARIABLES LIKE 'default_authentication_plugin';"
+```
+
+**Expected Output**:
+```sql
 Empty set (0.01 sec)
 ```
-- **Key Observation**: The `default_authentication_plugin` system variable is **removed** in MySQL 8.4.2-2.
+
+**Explanation**: The `default_authentication_plugin` system variable has been removed in MySQL 8.4.
 
 ---
 
-### **2. Plugin Status**
+## **4. Test Plugin Status**
 
-#### **MySQL 8.0.39-30**
+### **Check `mysql_native_password` Plugin Status**
+
+#### **MySQL 8.0**
 ```bash
-$ docker exec -it mypercona80 mysql -u root -e "SHOW PLUGINS;" | grep mysql_native_password
+sudo docker exec -it mypercona80 mysql -u root -e "SHOW PLUGINS;" | grep mysql_native_password
+```
+
+**Expected Output**:
+```sql
 | mysql_native_password            | ACTIVE   | AUTHENTICATION     | NULL    | GPL     |
 ```
 
-#### **MySQL 8.4.2-2**
+#### **MySQL 8.4**
 ```bash
-$ sudo docker exec -it mypercona84 mysql -u root -e "SHOW PLUGINS;" | grep mysql_native_password
+sudo docker exec -it mypercona84 mysql -u root -e "SHOW PLUGINS;" | grep mysql_native_password
+```
+
+**Expected Output**:
+```sql
 | mysql_native_password            | DISABLED | AUTHENTICATION     | NULL    | GPL     |
 ```
-- **Key Observation**: In MySQL 8.4.2-2, `mysql_native_password` is **disabled** by default but remains available for manual activation.
+
+**Explanation**: In MySQL 8.4, the `mysql_native_password` plugin is disabled by default but remains available for activation.
 
 ---
 
-### **3. Testing User Creation**
+## **5. Test User Creation**
 
-#### **Default Behavior in MySQL 8.4 Without Plugin Activation**
-1. Attempt to create a user using the `mysql_native_password` plugin:
-   ```sql
-   CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';
-   ```
-   **Expected Output**:
-   ```sql
-   ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
-   ```
-   **Explanation**: The `mysql_native_password` plugin is disabled by default in MySQL 8.4, and attempts to use it without enabling the plugin result in an error.
+### **Attempt to Create a User with `mysql_native_password`**
 
-2. Create a user with the default authentication plugin:
-   ```sql
-   mysql> CREATE USER 'default_user'@'localhost' IDENTIFIED BY 'password123';
-   mysql> SELECT user, host, plugin FROM mysql.user WHERE user = 'default_user';
-   ```
-   **Expected Output**:
-   ```sql
-   +--------------+-----------+-----------------------+
-   | user         | host      | plugin                |
-   +--------------+-----------+-----------------------+
-   | default_user | localhost | caching_sha2_password |
-   +--------------+-----------+-----------------------+
-   ```
-   **Explanation**: In MySQL 8.4, the default authentication plugin is `caching_sha2_password`.
+#### **MySQL 8.4**
+Run the following command to create a user using the `mysql_native_password` plugin:
 
---- 
-
-### **3. Error Encountered in MySQL 8.4.2-2**
-
-When attempting to configure `default_authentication_plugin` in MySQL 8.4.2-2, the following error was encountered:
-```
-2024-11-20T00:23:34.190854Z 0 [ERROR] [MY-000067] [Server] unknown variable 'default-authentication-plugin=mysql_native_password'.
-2024-11-20T00:23:34.193544Z 0 [ERROR] [MY-010119] [Server] Aborting
+```bash
+sudo docker exec -it mypercona84 mysql -u root -e "CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';"
 ```
 
-This occurred because the `default_authentication_plugin` variable has been **removed** in MySQL 8.4.
+**Expected Output**:
+```sql
+ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
+```
 
 ---
 
-### **4. Resolution: Activating `mysql_native_password` in MySQL 8.4.2-2**
+### **Create a User with the Default Plugin**
 
-To activate the `mysql_native_password` plugin in MySQL 8.4.2-2, the following steps were taken:
+#### **MySQL 8.4**
+Run the following commands to create a user with the default authentication plugin and check the plugin used:
 
-#### **Configuration Update**
-- Added the following line to the MySQL configuration file (`my.cnf` or equivalent):
+```bash
+sudo docker exec -it mypercona84 mysql -u root -e "
+CREATE USER 'default_user'@'localhost' IDENTIFIED BY 'password123';
+SELECT user, host, plugin FROM mysql.user WHERE user = 'default_user';
+"
+```
+
+**Expected Output**:
+```sql
++--------------+-----------+-----------------------+
+| user         | host      | plugin                |
++--------------+-----------+-----------------------+
+| default_user | localhost | caching_sha2_password |
++--------------+-----------+-----------------------+
+```
+
+---
+
+### **Enable `mysql_native_password` in MySQL 8.4**
+
+Update the configuration file (`my.cnf`) to activate `mysql_native_password` in MySQL 8.4:
+
+1. Edit `~/lab/mysql84/my.cnf` and add the following line:
     ```ini
     mysql_native_password=ON
     ```
 
-#### **Verification**
-After restarting the server, the plugin status was confirmed as active:
-```bash
-$ sudo docker exec -it mypercona84 mysql -u root -e "SHOW PLUGINS;" | grep mysql_native_password
+2. Restart the container:
+    ```bash
+    sudo docker restart mypercona84
+    ```
+
+3. Verify that the plugin is active:
+    ```bash
+    sudo docker exec -it mypercona84 mysql -u root -e "SHOW PLUGINS;" | grep mysql_native_password
+    ```
+
+**Expected Output**:
+```sql
 | mysql_native_password            | ACTIVE   | AUTHENTICATION     | NULL    | GPL     |
+```
+
+4. Retry creating the user with the `mysql_native_password` plugin:
+    ```bash
+    sudo docker exec -it mypercona84 mysql -u root -e "CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';"
+    ```
+
+**Expected Output**:
+```sql
+Query OK, 0 rows affected
 ```
 
 ---
 
-### **5. Key Differences Between MySQL 8.0 and MySQL 8.4**
+## **6. Verify Users and Plugins**
 
-| **Feature**                     | **MySQL 8.0.39-30**            | **MySQL 8.4.2-2**            |
-|---------------------------------|--------------------------------|------------------------------|
-| Default Authentication Plugin   | `default_authentication_plugin` exists | Variable removed             |
-| Default Plugin Value            | `caching_sha2_password`        | Not applicable               |
-| `mysql_native_password` Status  | Active by default              | Disabled by default          |
-| Plugin Activation               | Not required                  | Manual activation via config |
+List all users and their authentication plugins in both MySQL 8.0 and MySQL 8.4:
 
----
+### **MySQL 8.0**
+```bash
+sudo docker exec -it mypercona80 mysql -u root -e "SELECT user, host, plugin FROM mysql.user;"
+```
 
-### **6. Conclusion**
+### **MySQL 8.4**
+```bash
+sudo docker exec -it mypercona84 mysql -u root -e "SELECT user, host, plugin FROM mysql.user;"
+```
 
-- **Shift in Authentication Standards**:
-    - MySQL 8.4 emphasizes secure authentication by deprecating legacy methods like `mysql_native_password`.
-    - The `default_authentication_plugin` system variable has been removed, requiring explicit activation of `mysql_native_password`.
-
-- **Implications for Support Teams**:
-    - Teams must adapt to these changes by:
-        - Understanding the removal of the `default_authentication_plugin`.
-        - Updating configurations to explicitly enable legacy plugins where required.
-
-- **Outcome**:
-    - Successfully activated `mysql_native_password` in MySQL 8.4.2-2, aligning its behavior with MySQL 8.0.39-30.
-    - Provided a clear path for managing authentication plugins in MySQL 8.4.
+Compare the outputs to observe differences in plugin usage and configuration.
 
 ---
 
-### **References**
+## **7. Clean Up**
 
-- [MySQL 8.4 Reference Manual: Native Pluggable Authentication](https://dev.mysql.com/doc/refman/8.4/en/native-pluggable-authentication.html)
-- [MySQL 8.0 Reference Manual: Default Authentication Plugin](https://dev.mysql.com/doc/refman/8.0/en/server-system-variables.html#sysvar_default_authentication_plugin)
+Stop and remove the containers if no longer needed:
+
+```bash
+sudo docker stop mypercona80 mypercona84
+sudo docker rm mypercona80 mypercona84
+```
+
+---
+
+## **Summary**
+
+This lab demonstrates:
+- Differences in default authentication plugin behavior between MySQL 8.0 and 8.4.
+- Steps to activate `mysql_native_password` in MySQL 8.4.
+- Validation of user creation and plugin usage.
+
