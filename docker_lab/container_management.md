@@ -134,7 +134,7 @@ sudo docker run --name mypercona84 \
 
 Check if both containers are running:
 ```bash
-sudo docker ps | grep -i mypercona
+sudo docker ps -a | grep -i mypercona
 ```
 
 **Expected Output**:
@@ -183,6 +183,11 @@ ls ~/lab/mysql84/config
 
 ## **8. Manage Containers**
 
+### **Check Containers Status**
+```bash
+sudo docker ps -a | grep -i mypercona
+```
+
 ### **Stop Containers**
 ```bash
 sudo docker stop mypercona80
@@ -191,8 +196,8 @@ sudo docker stop mypercona84
 
 ### **Restart Containers**
 ```bash
-sudo docker start mypercona80
-sudo docker start mypercona84
+sudo docker restart mypercona80
+sudo docker restart mypercona84
 ```
 
 ### **Remove Containers**
