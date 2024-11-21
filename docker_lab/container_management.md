@@ -295,7 +295,7 @@ sudo docker run --rm \
   -v ~/lab/mysql84:/host-config \
   percona-mysql-8.4 \
   bash -c "cat /etc/my.cnf > /host-config/my.cnf && cp -R /var/lib/mysql/* /host-mysql-data"
-sudo docker run --name mypercona80 \
+sudo docker run --name mypercona84 \
   -d \
   -p 33084:3306 \
   -v ~/lab/mysql84/my.cnf:/etc/my.cnf \
