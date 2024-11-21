@@ -136,6 +136,8 @@ sudo docker run --name mypercona80 \
   -v ~/lab/mysql80/logs:/var/log \
   -v ~/lab/mysql80/data:/var/lib/mysql \
   percona-mysql-8.0
+sleep 2
+sudo chmod +r ~/lab/mysql80/logs/mysqld.log
 ```
 
 ### **Run MySQL 8.4 Container**
@@ -147,6 +149,8 @@ sudo docker run --name mypercona84 \
   -v ~/lab/mysql84/logs:/var/log \
   -v ~/lab/mysql84/data:/var/lib/mysql \
   percona-mysql-8.4
+sleep 2
+sudo chmod +r ~/lab/mysql84/logs/mysqld.log
 ```
 
 These commands start the MySQL containers with mounted directories for configurations, logs, and data.
@@ -184,6 +188,16 @@ sudo docker exec -it mypercona80 mysql -u root
 sudo docker exec -it mypercona84 mysql -u root
 ```
 
+### **Connect Bash to MySQL 8.0**
+```bash
+sudo docker exec -it mypercona80 bash
+```
+
+### **Connect Bash to MySQL 8.4**
+```bash
+sudo docker exec -it mypercona84 bash
+```
+
 These commands open interactive MySQL sessions in the running containers. If you encounter issues logging in, verify the container status with `sudo docker ps` and ensure the directories are properly mounted.
 
 ---
@@ -204,7 +218,7 @@ The following directories on the host now correspond to specific container direc
 You can inspect or edit these directories directly on the host system. For example:
 ```bash
 ls ~/lab/mysql80/logs
-ls ~/lab/mysql84/config
+ls ~/lab/mysql84/logs
 ```
 
 ---
@@ -248,9 +262,16 @@ If containers need to be recreated, follow these steps:
 
 ### **Recreate MySQL 8.0 Container**
 ```bash
-cd ~/lab
 sudo docker stop mypercona80 && \
-sudo docker rm mypercona80 && \
+sudo docker rm mypercona80
+sudo rm -Rf ~/lab/mysql80
+mkdir -p ~/lab/mysql80/{logs,data}
+sudo chmod -R 777 ~/lab/mysql80/{logs,data}
+sudo docker run --rm \
+  -v ~/lab/mysql80/data:/host-mysql-data \
+  -v ~/lab/mysql80:/host-config \
+  percona-mysql-8.0 \
+  bash -c "cat /etc/my.cnf > /host-config/my.cnf && cp -R /var/lib/mysql/* /host-mysql-data"
 sudo docker run --name mypercona80 \
   -d \
   -p 33080:3306 \
@@ -258,20 +279,31 @@ sudo docker run --name mypercona80 \
   -v ~/lab/mysql80/logs:/var/log \
   -v ~/lab/mysql80/data:/var/lib/mysql \
   percona-mysql-8.0
+sleep 2
+sudo chmod +r ~/lab/mysql80/logs/mysqld.log
 ```
 
 ### **Recreate MySQL 8.4 Container**
 ```bash
-cd ~/lab
 sudo docker stop mypercona84 && \
-sudo docker rm mypercona84 && \
-sudo docker run --name mypercona84 \
+sudo docker rm mypercona84
+sudo rm -Rf ~/lab/mysql84
+mkdir -p ~/lab/mysql84/{logs,data}
+sudo chmod -R 777 ~/lab/mysql84/{logs,data}
+sudo docker run --rm \
+  -v ~/lab/mysql84/data:/host-mysql-data \
+  -v ~/lab/mysql84:/host-config \
+  percona-mysql-8.4 \
+  bash -c "cat /etc/my.cnf > /host-config/my.cnf && cp -R /var/lib/mysql/* /host-mysql-data"
+sudo docker run --name mypercona80 \
   -d \
   -p 33084:3306 \
   -v ~/lab/mysql84/my.cnf:/etc/my.cnf \
   -v ~/lab/mysql84/logs:/var/log \
   -v ~/lab/mysql84/data:/var/lib/mysql \
   percona-mysql-8.4
+sleep 2
+sudo chmod +r ~/lab/mysql84/logs/mysqld.log
 ```
 
 These commands ensure that the containers are cleanly recreated with the same configurations and mounted directories.
