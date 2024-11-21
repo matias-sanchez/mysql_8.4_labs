@@ -133,8 +133,8 @@ sudo docker run --name mypercona80 \
   -d \
   -p 33080:3306 \
   -v ~/lab/mysql80/my.cnf:/etc/my.cnf \
-  -v ~/lab/mysql80/logs:/var/log/mysql \
-  -v ~/lab/mysql80/data:/var/lib/mysql \
+  -v ~/lab/mysql80/logs:/var/log \
+  -v ~/lab/mysql80/data:/var/lib \
   percona-mysql-8.0
 ```
 
@@ -255,7 +255,7 @@ sudo docker run --name mypercona80 \
   -d \
   -p 33080:3306 \
   -v ~/lab/mysql80/my.cnf:/etc/my.cnf \
-  -v ~/lab/mysql80/logs:/var/log/mysql \
+  -v ~/lab/mysql80/logs:/var/log \
   -v ~/lab/mysql80/data:/var/lib/mysql \
   percona-mysql-8.0
 ```
@@ -269,7 +269,7 @@ sudo docker run --name mypercona84 \
   -d \
   -p 33084:3306 \
   -v ~/lab/mysql84/my.cnf:/etc/my.cnf \
-  -v ~/lab/mysql84/logs:/var/log/mysql \
+  -v ~/lab/mysql84/logs:/var/log \
   -v ~/lab/mysql84/data:/var/lib/mysql \
   percona-mysql-8.4
 ```
