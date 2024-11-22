@@ -1,126 +1,159 @@
-Lab Guide: Authentication Plugin Behavior in MySQL 8.0 vs MySQL 8.4
+# **Lab Guide: Authentication Plugin Behavior in MySQL 8.0 vs MySQL 8.4**
 
-This lab focuses on analyzing the differences in authentication plugin behavior between MySQL 8.0.39-30 and MySQL 8.4.2-2 using MySQL SQL commands. The containers mypercona80 and mypercona84 represent MySQL 8.0 and MySQL 8.4 environments, respectively.
+This lab focuses on analyzing the differences in authentication plugin behavior between **MySQL 8.0.39-30** and **MySQL 8.4.2-2** using MySQL SQL commands. The containers `mypercona80` and `mypercona84` represent MySQL 8.0 and MySQL 8.4 environments, respectively.
 
-1. Environment Setup
+---
 
-Connecting to MySQL
+## **1. Environment Setup**
+
+### Connecting to MySQL
 
 Connect to the containers as follows:
-	•	MySQL 8.0:
+- **MySQL 8.0**: 
+  ```bash
+  sudo docker exec -it mypercona80 mysql -u root
+  ```
+- **MySQL 8.4**: 
+  ```bash
+  sudo docker exec -it mypercona84 mysql -u root
+  ```
 
-sudo docker exec -it mypercona80 mysql -u root
+---
 
+## **2. Authentication Plugin Behavior**
 
-	•	MySQL 8.4:
-
-sudo docker exec -it mypercona84 mysql -u root
-
-2. Authentication Plugin Behavior
-
-Verify the Default Authentication Plugin
+### Verify the Default Authentication Plugin
 
 Run the following commands to observe the default authentication plugin configuration.
-	•	MySQL 8.0:
 
-SHOW VARIABLES LIKE 'default_authentication_plugin';
+- **MySQL 8.0**:
+  ```sql
+  SHOW VARIABLES LIKE 'default_authentication_plugin';
+  ```
 
+- **MySQL 8.4**:
+  ```sql
+  SHOW VARIABLES LIKE 'default_authentication_plugin';
+  ```
 
-	•	MySQL 8.4:
+- In MySQL 8.0, `default_authentication_plugin` is available and defaults to `caching_sha2_password`.
+- In MySQL 8.4, `default_authentication_plugin` is no longer available as it has been removed.
 
-SHOW VARIABLES LIKE 'default_authentication_plugin';
+---
 
+### Check Plugin Status
 
-	•	In MySQL 8.0, default_authentication_plugin is available and defaults to caching_sha2_password.
-	•	In MySQL 8.4, default_authentication_plugin is no longer available as it has been removed.
+To determine the status of the `mysql_native_password` plugin:
 
-Check Plugin Status
+- **MySQL 8.0**:
+  ```sql
+  SHOW PLUGINS;
+  ```
 
-To determine the status of the mysql_native_password plugin:
-	•	MySQL 8.0:
+  Search for the `mysql_native_password` plugin. It should display as **ACTIVE**.
 
-SHOW PLUGINS;
+- **MySQL 8.4**:
+  ```sql
+  SHOW PLUGINS;
+  ```
 
-Search for the mysql_native_password plugin. It should display as ACTIVE.
+  The `mysql_native_password` plugin will be listed as **DISABLED**.
 
-	•	MySQL 8.4:
+---
 
-SHOW PLUGINS;
+## **3. User Creation**
 
-The mysql_native_password plugin will be listed as DISABLED.
+### Create a User with `mysql_native_password`
 
-3. User Creation
+Attempt to create a user with the `mysql_native_password` plugin in MySQL 8.4:
 
-Create a User with mysql_native_password
-
-Attempt to create a user with the mysql_native_password plugin in MySQL 8.4:
-
+```sql
 CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';
+```
 
 This will fail with an error:
-
+```
 ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
+```
 
-Create a User with the Default Authentication Plugin
+---
+
+### Create a User with the Default Authentication Plugin
 
 Create a user with the default authentication plugin in MySQL 8.4:
 
+```sql
 CREATE USER 'default_user'@'localhost' IDENTIFIED BY 'password123';
 SELECT user, host, plugin FROM mysql.user WHERE user = 'default_user';
+```
 
-The plugin should show as caching_sha2_password.
+The plugin should show as `caching_sha2_password`.
 
-4. Enable mysql_native_password Plugin in MySQL 8.4
+---
 
-Update Configuration
+## **4. Enable `mysql_native_password` Plugin in MySQL 8.4**
 
-To enable mysql_native_password, add the following configuration to the my.cnf file:
+### Update Configuration
 
+To enable `mysql_native_password`, add the following configuration to the `my.cnf` file:
+```ini
 mysql_native_password=ON
+```
 
 Restart the MySQL 8.4 container to apply the changes:
-
+```bash
 sudo docker restart mypercona84
+```
 
-Verify Plugin Activation
+### Verify Plugin Activation
 
 After restarting, check the plugin status again:
-
+```sql
 SHOW PLUGINS;
+```
 
-The mysql_native_password plugin should now display as ACTIVE.
+The `mysql_native_password` plugin should now display as **ACTIVE**.
 
-Retry Creating a User with mysql_native_password
+---
 
-Once the plugin is activated, create a user with mysql_native_password:
+### Retry Creating a User with `mysql_native_password`
 
+Once the plugin is activated, create a user with `mysql_native_password`:
+
+```sql
 CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';
 SELECT user, host, plugin FROM mysql.user WHERE user = 'test_user';
+```
 
-The plugin for test_user should be mysql_native_password.
+The plugin for `test_user` should be `mysql_native_password`.
 
-5. Verify All Users and Plugins
+---
+
+## **5. Verify All Users and Plugins**
 
 To view all users and their associated plugins in each MySQL version, use:
-	•	MySQL 8.0:
 
-SELECT user, host, plugin FROM mysql.user;
+- **MySQL 8.0**:
+  ```sql
+  SELECT user, host, plugin FROM mysql.user;
+  ```
 
-
-	•	MySQL 8.4:
-
-SELECT user, host, plugin FROM mysql.user;
-
-
+- **MySQL 8.4**:
+  ```sql
+  SELECT user, host, plugin FROM mysql.user;
+  ```
 
 This will display all users and their respective authentication plugins for both MySQL environments.
 
-6. Summary of Observations
+---
 
-Feature	MySQL 8.0.39-30	MySQL 8.4.2-2
-Default Authentication Plugin	default_authentication_plugin exists	Removed
-Default Plugin Value	caching_sha2_password	Not applicable
-mysql_native_password Status	Active by default	Disabled by default
-Plugin Activation	Not required	Manual activation via config
+## **6. Summary of Observations**
 
-This lab provides a complete demonstration of how to work with authentication plugins in MySQL 8.0 and 8.4, focusing on practical SQL commands and behavior differences.
+| **Feature**                     | **MySQL 8.0.39-30**            | **MySQL 8.4.2-2**            |
+|---------------------------------|--------------------------------|------------------------------|
+| Default Authentication Plugin   | `default_authentication_plugin` exists | Removed                     |
+| Default Plugin Value            | `caching_sha2_password`        | Not applicable               |
+| `mysql_native_password` Status  | Active by default              | Disabled by default          |
+| Plugin Activation               | Not required                  | Manual activation via config |
+
+--- 
