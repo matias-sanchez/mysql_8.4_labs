@@ -1,6 +1,6 @@
 # **Lab Guide: Authentication Plugin Behavior in MySQL 8.0 vs MySQL 8.4**
 
-This lab focuses on analyzing the differences in authentication plugin behavior between **MySQL 8.0.39-30** and **MySQL 8.4.2-2** using MySQL SQL commands. The containers `mypercona80` and `mypercona84` represent MySQL 8.0 and MySQL 8.4 environments, respectively.
+This lab demonstrates the differences in authentication plugin behavior between **MySQL 8.0.39-30** and **MySQL 8.4.2-2** using MySQL SQL commands. The containers `mypercona80` and `mypercona84` represent MySQL 8.0 and MySQL 8.4 environments, respectively.
 
 ---
 
@@ -24,18 +24,32 @@ Connect to the containers as follows:
 
 ### Verify the Default Authentication Plugin
 
-Run the following commands to observe the default authentication plugin configuration.
+Run the following commands to observe the default authentication plugin configuration:
 
 - **MySQL 8.0**:
   ```sql
   SHOW VARIABLES LIKE 'default_authentication_plugin';
+  ```
+  Output:
+  ```sql
+  +-------------------------------+-----------------------+
+  | Variable_name                 | Value                 |
+  +-------------------------------+-----------------------+
+  | default_authentication_plugin | caching_sha2_password |
+  +-------------------------------+-----------------------+
+  1 row in set (0.80 sec)
   ```
 
 - **MySQL 8.4**:
   ```sql
   SHOW VARIABLES LIKE 'default_authentication_plugin';
   ```
+  Output:
+  ```sql
+  Empty set (0.00 sec)
+  ```
 
+Explanation:
 - In MySQL 8.0, `default_authentication_plugin` is available and defaults to `caching_sha2_password`.
 - In MySQL 8.4, `default_authentication_plugin` is no longer available as it has been removed.
 
@@ -47,33 +61,61 @@ To determine the status of the `mysql_native_password` plugin:
 
 - **MySQL 8.0**:
   ```sql
-  SHOW PLUGINS;
+  SELECT * FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = 'mysql_native_password';
   ```
-
-  Search for the `mysql_native_password` plugin. It should display as **ACTIVE**.
+  Output:
+  ```sql
+  +-----------------------+----------------+---------------+----------------+---------------------+----------------+------------------------+--------------------+-----------------------------+----------------+-------------+
+  | PLUGIN_NAME           | PLUGIN_VERSION | PLUGIN_STATUS | PLUGIN_TYPE    | PLUGIN_TYPE_VERSION | PLUGIN_LIBRARY | PLUGIN_LIBRARY_VERSION | PLUGIN_AUTHOR      | PLUGIN_DESCRIPTION          | PLUGIN_LICENSE | LOAD_OPTION |
+  +-----------------------+----------------+---------------+----------------+---------------------+----------------+------------------------+--------------------+-----------------------------+----------------+-------------+
+  | mysql_native_password | 1.1            | ACTIVE        | AUTHENTICATION | 2.1                 | NULL           | NULL                   | Oracle Corporation | Native MySQL authentication | GPL            | FORCE       |
+  +-----------------------+----------------+---------------+----------------+---------------------+----------------+------------------------+--------------------+-----------------------------+----------------+-------------+
+  1 row in set (0.03 sec)
+  ```
 
 - **MySQL 8.4**:
   ```sql
-  SHOW PLUGINS;
+  SELECT * FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = 'mysql_native_password';
   ```
-
-  The `mysql_native_password` plugin will be listed as **DISABLED**.
+  Output:
+  ```sql
+  +-----------------------+----------------+---------------+----------------+---------------------+----------------+------------------------+--------------------+-----------------------------+----------------+-------------+
+  | PLUGIN_NAME           | PLUGIN_VERSION | PLUGIN_STATUS | PLUGIN_TYPE    | PLUGIN_TYPE_VERSION | PLUGIN_LIBRARY | PLUGIN_LIBRARY_VERSION | PLUGIN_AUTHOR      | PLUGIN_DESCRIPTION          | PLUGIN_LICENSE | LOAD_OPTION |
+  +-----------------------+----------------+---------------+----------------+---------------------+----------------+------------------------+--------------------+-----------------------------+----------------+-------------+
+  | mysql_native_password | 1.1            | DISABLED      | AUTHENTICATION | 2.1                 | NULL           | NULL                   | Oracle Corporation | Native MySQL authentication | GPL            | OFF         |
+  +-----------------------+----------------+---------------+----------------+---------------------+----------------+------------------------+--------------------+-----------------------------+----------------+-------------+
+  1 row in set (0.05 sec)
+  ```
 
 ---
 
-## **3. User Creation**
+## **3. User Creation** 
 
 ### Create a User with `mysql_native_password`
 
 Attempt to create a user with the `mysql_native_password` plugin in MySQL 8.4:
-
 ```sql
 CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';
 ```
 
-This will fail with an error:
-```
+Error:
+```sql
 ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
+```
+
+In MySQL 8.0:
+```sql
+CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';
+SELECT user, host, plugin FROM mysql.user WHERE user = 'test_user';
+```
+Output:
+```sql
++-----------+-----------+-----------------------+
+| user      | host      | plugin                |
++-----------+-----------+-----------------------+
+| test_user | localhost | mysql_native_password |
++-----------+-----------+-----------------------+
+1 row in set (0.00 sec)
 ```
 
 ---
@@ -81,13 +123,26 @@ ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
 ### Create a User with the Default Authentication Plugin
 
 Create a user with the default authentication plugin in MySQL 8.4:
-
 ```sql
 CREATE USER 'default_user'@'localhost' IDENTIFIED BY 'password123';
+```
+
+To check the user's plugin:
+```sql
 SELECT user, host, plugin FROM mysql.user WHERE user = 'default_user';
 ```
 
-The plugin should show as `caching_sha2_password`.
+Output:
+```sql
++--------------+-----------+-----------------------+
+| user         | host      | plugin                |
++--------------+-----------+-----------------------+
+| default_user | localhost | caching_sha2_password |
++--------------+-----------+-----------------------+
+1 row in set (0.00 sec)
+```
+
+This output is identical in both MySQL 8.0 and 8.4.
 
 ---
 
@@ -95,59 +150,63 @@ The plugin should show as `caching_sha2_password`.
 
 ### Update Configuration
 
-To enable `mysql_native_password`, add the following configuration to the `my.cnf` file:
+To modify `my.cnf`, use:
+```bash
+sudo vi ~/lab/mysql84/my.cnf
+```
+
+Add the following line:
 ```ini
 mysql_native_password=ON
 ```
 
-Restart the MySQL 8.4 container to apply the changes:
+Restart the MySQL 8.4 container:
 ```bash
 sudo docker restart mypercona84
 ```
 
+---
+
 ### Verify Plugin Activation
 
-After restarting, check the plugin status again:
+Check the plugin status after the restart:
 ```sql
-SHOW PLUGINS;
+SELECT * FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = 'mysql_native_password';
 ```
 
-The `mysql_native_password` plugin should now display as **ACTIVE**.
+Output:
+```sql
++-----------------------+----------------+---------------+----------------+---------------------+----------------+------------------------+--------------------+-----------------------------+----------------+-------------+
+| PLUGIN_NAME           | PLUGIN_VERSION | PLUGIN_STATUS | PLUGIN_TYPE    | PLUGIN_TYPE_VERSION | PLUGIN_LIBRARY | PLUGIN_LIBRARY_VERSION | PLUGIN_AUTHOR      | PLUGIN_DESCRIPTION          | PLUGIN_LICENSE | LOAD_OPTION |
++-----------------------+----------------+---------------+----------------+---------------------+----------------+------------------------+--------------------+-----------------------------+----------------+-------------+
+| mysql_native_password | 1.1            | ACTIVE        | AUTHENTICATION | 2.1                 | NULL           | NULL                   | Oracle Corporation | Native MySQL authentication | GPL            | ON          |
++-----------------------+----------------+---------------+----------------+---------------------+----------------+------------------------+--------------------+-----------------------------+----------------+-------------+
+1 row in set (0.00 sec)
+```
 
 ---
 
 ### Retry Creating a User with `mysql_native_password`
 
-Once the plugin is activated, create a user with `mysql_native_password`:
-
+After activating the plugin, create a user:
 ```sql
 CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';
 SELECT user, host, plugin FROM mysql.user WHERE user = 'test_user';
 ```
 
-The plugin for `test_user` should be `mysql_native_password`.
+Output:
+```sql
++-----------+-----------+-----------------------+
+| user      | host      | plugin                |
++-----------+-----------+-----------------------+
+| test_user | localhost | mysql_native_password |
++-----------+-----------+-----------------------+
+1 row in set (0.00 sec)
+```
 
 ---
 
-## **5. Verify All Users and Plugins**
-
-To view all users and their associated plugins in each MySQL version, use:
-
-- **MySQL 8.0**:
-  ```sql
-  SELECT user, host, plugin FROM mysql.user;
-  ```
-
-- **MySQL 8.4**:
-  ```sql
-  SELECT user, host, plugin FROM mysql.user;
-  ```
-
-This will display all users and their respective authentication plugins for both MySQL environments.
-
----
-
-## **6. Summary of Observations**
+## **5. Summary of Observations**
 
 | **Feature**                     | **MySQL 8.0.39-30**            | **MySQL 8.4.2-2**            |
 |---------------------------------|--------------------------------|------------------------------|

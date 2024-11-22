@@ -313,11 +313,16 @@ These commands ensure that the containers are cleanly recreated with the same co
 ## **10. Troubleshooting Common Issues**
 
 ### **MySQL Fails to Start**
-- **Check Logs**:
+- **Check Logs for Mysql 8.0**:
   ```bash
-  cat ~/lab/mysql80/logs/mysqld.log
-  cat ~/lab/mysql84/logs/mysqld.log
+  tail -100f ~/lab/mysql80/logs/mysqld.log
   ```
+
+- **Check Logs for Mysql 8.4**:
+  ```bash
+  tail -100f ~/lab/mysql84/logs/mysqld.log
+  ```
+
   Look for errors related to permissions, configurations, or missing files.
 
 - **Verify Directory Permissions**:
