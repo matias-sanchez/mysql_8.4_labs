@@ -49,9 +49,37 @@ Run the following commands to observe the default authentication plugin configur
   Empty set (0.00 sec)
   ```
 
-Explanation:
+### Explanation of `default_authentication_plugin`
 - In MySQL 8.0, `default_authentication_plugin` is available and defaults to `caching_sha2_password`.
 - In MySQL 8.4, `default_authentication_plugin` is no longer available as it has been removed.
+
+---
+
+### **No Possibility to Enable `default_authentication_plugin` in MySQL 8.4**
+
+Attempting to enable `default_authentication_plugin` in MySQL 8.4 using the configuration file results in an error. 
+
+Steps to reproduce:
+1. Edit the configuration file:
+   ```bash
+   sudo vi ~/lab/mysql84/my.cnf
+   ```
+2. Add the line:
+   ```ini
+   default_authentication_plugin=caching_sha2_password
+   ```
+3. Restart the container:
+   ```bash
+   sudo docker restart mypercona84
+   ```
+
+Error observed in the logs:
+```
+2024-11-22T12:18:34.866485Z 0 [ERROR] [MY-000067] [Server] unknown variable 'default_authentication_plugin=caching_sha2_password'.
+2024-11-22T12:18:34.867367Z 0 [ERROR] [MY-010119] [Server] Aborting
+```
+
+This confirms that `default_authentication_plugin` is not configurable in MySQL 8.4.
 
 ---
 
@@ -61,7 +89,12 @@ To determine the status of the `mysql_native_password` plugin:
 
 - **MySQL 8.0**:
   ```sql
-  SELECT * FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = 'mysql_native_password';
+  SELECT 
+      * 
+  FROM 
+      INFORMATION_SCHEMA.PLUGINS 
+  WHERE 
+      PLUGIN_NAME = 'mysql_native_password';
   ```
   Output:
   ```sql
@@ -75,7 +108,12 @@ To determine the status of the `mysql_native_password` plugin:
 
 - **MySQL 8.4**:
   ```sql
-  SELECT * FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = 'mysql_native_password';
+  SELECT 
+      * 
+  FROM 
+      INFORMATION_SCHEMA.PLUGINS 
+  WHERE 
+      PLUGIN_NAME = 'mysql_native_password';
   ```
   Output:
   ```sql
@@ -93,9 +131,15 @@ To determine the status of the `mysql_native_password` plugin:
 
 ### Create a User with `mysql_native_password`
 
-Attempt to create a user with the `mysql_native_password` plugin in MySQL 8.4:
+#### MySQL 8.4:
+Attempt to create a user with `mysql_native_password`:
 ```sql
-CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';
+CREATE USER 
+    'test_user'@'localhost' 
+IDENTIFIED WITH 
+    'mysql_native_password' 
+BY 
+    'password123';
 ```
 
 Error:
@@ -103,10 +147,27 @@ Error:
 ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
 ```
 
-In MySQL 8.0:
+#### MySQL 8.0:
+Create a user indicating the plugin :
 ```sql
-CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';
-SELECT user, host, plugin FROM mysql.user WHERE user = 'test_user';
+CREATE USER 
+    'test_user'@'localhost' 
+IDENTIFIED WITH 
+    'mysql_native_password' 
+BY 
+    'password123';
+```
+
+To check the user's plugin:
+```sql
+SELECT 
+    user, 
+    host, 
+    plugin 
+FROM 
+    mysql.user 
+WHERE 
+    user = 'test_user';
 ```
 Output:
 ```sql
@@ -124,12 +185,22 @@ Output:
 
 Create a user with the default authentication plugin in MySQL 8.4:
 ```sql
-CREATE USER 'default_user'@'localhost' IDENTIFIED BY 'password123';
+CREATE USER 
+    'default_user'@'localhost' 
+IDENTIFIED BY 
+    'password123';
 ```
 
 To check the user's plugin:
 ```sql
-SELECT user, host, plugin FROM mysql.user WHERE user = 'default_user';
+SELECT 
+    user, 
+    host, 
+    plugin 
+FROM 
+    mysql.user 
+WHERE 
+    user = 'default_user';
 ```
 
 Output:
@@ -142,7 +213,7 @@ Output:
 1 row in set (0.00 sec)
 ```
 
-This output is identical in both MySQL 8.0 and 8.4.
+This output is consistent in both MySQL 8.0 and 8.4.
 
 ---
 
@@ -150,12 +221,12 @@ This output is identical in both MySQL 8.0 and 8.4.
 
 ### Update Configuration
 
-To modify `my.cnf`, use:
+Edit the `my.cnf` file:
 ```bash
 sudo vi ~/lab/mysql84/my.cnf
 ```
 
-Add the following line:
+Add the line:
 ```ini
 mysql_native_password=ON
 ```
@@ -171,7 +242,12 @@ sudo docker restart mypercona84
 
 Check the plugin status after the restart:
 ```sql
-SELECT * FROM INFORMATION_SCHEMA.PLUGINS WHERE PLUGIN_NAME = 'mysql_native_password';
+SELECT 
+    * 
+FROM 
+    INFORMATION_SCHEMA.PLUGINS 
+WHERE 
+    PLUGIN_NAME = 'mysql_native_password';
 ```
 
 Output:
@@ -188,10 +264,23 @@ Output:
 
 ### Retry Creating a User with `mysql_native_password`
 
-After activating the plugin, create a user:
+Create a user after enabling the plugin:
 ```sql
-CREATE USER 'test_user'@'localhost' IDENTIFIED WITH 'mysql_native_password' BY 'password123';
-SELECT user, host, plugin FROM mysql.user WHERE user = 'test_user';
+CREATE USER 
+    'test_user'@'localhost' 
+IDENTIFIED WITH 
+    'mysql_native_password' 
+BY 
+    'password123';
+
+SELECT 
+    user, 
+    host, 
+    plugin 
+FROM 
+    mysql.user 
+WHERE 
+    user = 'test_user';
 ```
 
 Output:
@@ -206,7 +295,9 @@ Output:
 
 ---
 
-## **5. Summary of Observations**
+## **
+
+5. Summary of Observations**
 
 | **Feature**                     | **MySQL 8.0.39-30**            | **MySQL 8.4.2-2**            |
 |---------------------------------|--------------------------------|------------------------------|
