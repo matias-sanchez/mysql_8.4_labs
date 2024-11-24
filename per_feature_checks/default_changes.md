@@ -479,3 +479,13 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 2. Support Engineers should leverage these defaults to optimize configurations based on workload and hardware.
 
 This simulation provides practical insights into the changes and prepares teams for real-world troubleshooting.
+
+# Math Example in Markdown
+
+## Inline Math
+The circumference of a circle is given by the formula $C = 2\pi r$, where $r$ is the radius.
+
+## Block Math
+The quadratic formula is:
+
+$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$
