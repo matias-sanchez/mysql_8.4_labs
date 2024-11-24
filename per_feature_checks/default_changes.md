@@ -110,6 +110,14 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 | B            | 4 GiB                | 8                        | 12                       | Rounded to 4.5 GiB in MySQL 8.4 to align with chunk size * instances.           |
 | C            | 2 GiB                | 8                        | 8                        | Memory alignment rules satisfied without rounding in MySQL 8.4.                |
 | D            | 1.5 GiB              | 8                        | 6                        | Adjusted in MySQL 8.4 to match multiple of chunk size and dynamic instance calc.|
+Here is the consolidated **table for all tested scenarios** in **Markdown format** to include at the beginning of your documentation:
+
+### **Highlights**
+
+- **Scenario A**: Demonstrates the behavior when `innodb_buffer_pool_size` is less than 1 GiB. Both MySQL 8.0 and 8.4 default to 1 instance.
+- **Scenario B**: Shows how MySQL 8.4 rounds the requested 4 GiB buffer pool size to align with memory configuration rules and chunk size alignment.
+- **Scenario C**: Highlights when the requested 2 GiB buffer pool size is already a valid multiple of chunk size and instance calculations.
+- **Scenario D**: Explains how MySQL 8.4 dynamically adjusts the buffer pool size and instances for a requested size of 1.5 GiB, using both Buffer Pool Hint and CPU Hint.
 
 ---
 
