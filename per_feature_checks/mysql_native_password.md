@@ -125,22 +125,8 @@ anydbver exec node0 --namespace=mysql_8_4_test -- grep -i mysql_native_password 
 loose-mysql_native_password=ON
 ``` 
 
-**Key Insight**:
+**Notet**:
 The presence of `loose-mysql_native_password=ON` in `my.cnf` enables the plugin when using `anydbver`, but this is not representative of MySQL 8.4's default behavior. For accurate testing, this configuration must be commented out or removed.
-
-##### **c. Validate `my.cnf` Configuration in MySQL 8.4**
-
-Inspect the `my.cnf` file for `mysql_native_password` settings:
-
-```bash
-anydbver exec node0 --namespace=mysql_8_4_test -- grep -i mysql_native_password /etc/my.cnf -B 1
-```
-
-**Output**:
-```plaintext
-# mysql native auth is disabled by default in 8.4
-loose-mysql_native_password=ON
-```
 
 ---
 
