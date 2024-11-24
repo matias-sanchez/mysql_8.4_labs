@@ -173,24 +173,19 @@ The presence of `loose-mysql_native_password=ON` in `my.cnf` enables the plugin 
 
 Reset MySQL 8.4 to its default configuration by disabling `mysql_native_password`:
 
-1. **Stop the MySQL server**:
-   ```bash
-   anydbver exec node0 --namespace=mysql_8_4_test -- mysqladmin shutdown
-   ```
-
-2. **Comment out the configuration in `my.cnf`**:
+1. **Comment out the configuration in `my.cnf`**:
    ```bash
    anydbver exec node0 --namespace=mysql_8_4_test -- bash -c "sed -i 's/^loose-mysql_native_password=ON/#loose-mysql_native_password=ON/' /etc/my.cnf"
    ```
 
-3. **Restart the server**:
+2. **Restart the server**:
    ```bash
    anydbver exec node0 --namespace=mysql_8_4_test -- systemctl restart mysqld
    ```
 
-4. **Verify plugin state**:
+3. **Verify plugin state**:
    ```sql
-   SHOW PLUGINS;
+   anydbver exec node0 --namespace=mysql_8_4_test -- mysql -e"SHOW PLUGINS;" | grep -i mysql_native_password
    ```
 
 **Output**:
@@ -290,6 +285,17 @@ ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
   Server version: 8.4.3 MySQL Community Server - GPL
   mysql>
   ```
+
+**Additional Note**: If the `mysql_native_password` plugin is disabled after creating the user, attempting to log in results in the following error:
+
+```bash
+anydbver exec node0 --namespace=mysql_8_4_test -- mysql -u test_user_8_4 -p'password' -h 127.0.0.1
+```
+**Output**:
+```plaintext
+mysql: [Warning] Using a password on the command line interface can be insecure.
+ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
+```
 
 ---
 
