@@ -3,7 +3,7 @@
 ---
 
 #### **Purpose**
-This lab demonstrates differences in authentication plugin behavior between **MySQL 8.0.34** and **MySQL 8.4**, leveraging the `anydbver` tool for controlled environment management. Key focus areas include:
+This lab demonstrates differences in authentication plugin behavior between **MySQL 8.0** and **MySQL 8.4**, leveraging the `anydbver` tool for controlled environment management. Key focus areas include:
 1. **Default Plugin Behavior**: Comparing how `mysql_native_password` and `default_authentication_plugin` are managed.
 2. **Behavior Validation**: Testing default and modified configurations.
 3. **Practical Observations**: Including exact outputs from commands.
