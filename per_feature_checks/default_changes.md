@@ -199,6 +199,8 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
    +-----------------------------+-------+
    ```
 
+---
+
 ###### **Scenario B: `innodb_buffer_pool_size` = 4 GiB**
 
 1. **Remove Existing Configuration**:
@@ -229,14 +231,32 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 
 5. **Math Calculations**:
    - **MySQL 8.0**:
-     - Default is always **8 instances** when `innodb_buffer_pool_size > 1 GiB`, regardless of CPU count.
+     - Default behavior in MySQL 8.0 assigns **8 instances** for any `innodb_buffer_pool_size > 1 GiB`, regardless of CPU count. This is a static configuration.
+
    - **MySQL 8.4**:
-     - **Buffer Pool Hint**: `(innodb_buffer_pool_size / innodb_buffer_pool_chunk_size) / 2`
-       - Assuming `innodb_buffer_pool_chunk_size = 128 MiB`:
-       - `(4 GiB / 128 MiB) / 2 = 32 / 2 = 16 instances`
-     - **CPU Hint**: `Available Logical Processors / 4`
-       - `48 / 4 = 12 instances`
-     - **Final Value**: Minimum of Buffer Pool Hint (16) and CPU Hint (12) → **4 instances**.
+     - MySQL 8.4 dynamically calculates the `innodb_buffer_pool_instances` based on:
+       - **Buffer Pool Hint**:
+         innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances * n (n is an integer)
+         innodb_buffer_pool_chunk_size defaults to 128 MiB (134217728 bytes).
+
+         The original value requested is 4 GiB (4294967296 bytes). However, since the buffer pool size must be a multiple of:
+         innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances
+
+         Substituting the default chunk size and calculated instances (12):
+         innodb_buffer_pool_size = 134217728 * 12
+         innodb_buffer_pool_size = 4831838208
+
+         This is why MySQL automatically rounds `innodb_buffer_pool_size` up to 4831838208 bytes.
+
+       - **CPU Hint**:
+         CPU Hint = Available Logical Processors / 4
+         Substituting the value:
+         CPU Hint = 48 / 4 = 12 instances
+
+       - **Final Value**:
+         The final value of `innodb_buffer_pool_instances` is the minimum of the Buffer Pool Hint and the CPU Hint:
+         innodb_buffer_pool_instances = min(Buffer Pool Hint, CPU Hint)
+         innodb_buffer_pool_instances = min(12, 12) = 12 instances
 
 6. **Output**:
    **MySQL 8.0**:
@@ -256,18 +276,43 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 
    **MySQL 8.4**:
    ```plaintext
-   +-------------------------+-----------+
-   | Variable_name           | Value     |
-   +-------------------------+-----------+
-   | innodb_buffer_pool_size | 4294967296 |
-   +-------------------------+-----------+
+   +-------------------------+------------+
+   | Variable_name           | Value      |
+   +-------------------------+------------+
+   | innodb_buffer_pool_size | 4831838208 |
+   +-------------------------+------------+
    
    +-----------------------------+-------+
    | Variable_name               | Value |
    +-----------------------------+-------+
-   | innodb_buffer_pool_instances| 4     |
+   | innodb_buffer_pool_instances| 12    |
    +-----------------------------+-------+
    ```
+
+---
+
+**Explanation of Adjustments**:
+
+1. **Buffer Pool Size Rounding**:
+   - MySQL 8.4 automatically adjusts `innodb_buffer_pool_size` to ensure it is a multiple of:
+     ```
+     innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances
+     ```
+   - With `innodb_buffer_pool_chunk_size = 134217728` (128 MiB) and `innodb_buffer_pool_instances = 12`, the value is:
+     ```
+     innodb_buffer_pool_size = 134217728 * 12 = 4831838208 bytes
+     ```
+   - This ensures proper alignment with chunk size and instance configuration.
+
+2. **MySQL 8.0 Behavior**:
+   - Always uses **8 buffer pool instances** when `innodb_buffer_pool_size > 1 GiB`. The CPU count is ignored, and the configuration is static.
+
+3. **MySQL 8.4 Behavior**:
+   - Dynamically adjusts `innodb_buffer_pool_instances` based on hardware resources and memory configuration:
+     - **Buffer Pool Hint** ensures proper memory alignment with chunk size.
+     - **CPU Hint** ensures optimal use of available processors.
+     - The final value is the minimum of these two hints.
+
 
 ---
 
