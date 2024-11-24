@@ -239,61 +239,62 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 #### **MySQL 8.4**
 MySQL 8.4 dynamically calculates `innodb_buffer_pool_instances` based on:
 
-      ```
-      innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances * n
-      ```
-      Where:
-      - `innodb_buffer_pool_chunk_size` defaults to `128 MiB` (134217728 bytes).
-      - `n` is an integer.
+```
+innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances * n
+```
 
-      The original value requested is:
-      ```
-      innodb_buffer_pool_size = 4 GiB = 4294967296 bytes
-      ```
+Where:
+- `innodb_buffer_pool_chunk_size` defaults to `128 MiB` (134217728 bytes).
+- `n` is an integer.
 
-      However, since the buffer pool size must be a multiple of: `innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances`
+The original value requested is:
+```
+innodb_buffer_pool_size = 4 GiB = 4294967296 bytes
+```
 
-      Substituting the default chunk size and calculated instances (12):
-      ```
-      innodb_buffer_pool_size = 134217728 * 12
-      innodb_buffer_pool_size = 1610612736
-      ```
-    
-      Clearly, the requested `innodb_buffer_pool_size` of `4294967296` is not satisfied. Therefore, MySQL automatically rounds `innodb_buffer_pool_size` to the nearest valid multiple of:
-      ```
-      innodb_buffer_pool_size = (innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances) * n
-      ```
+However, since the buffer pool size must be a multiple of: `innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances`
 
-      After adjustment, the new `innodb_buffer_pool_size` becomes:
-      ```
-      innodb_buffer_pool_size = (innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances) * 3
-      innodb_buffer_pool_size = (134217728 * 12) = 4831838208
-      ```
+Substituting the default chunk size and calculated instances (12):
+```
+innodb_buffer_pool_size = 134217728 * 12
+innodb_buffer_pool_size = 1610612736
+```
 
-      This is why MySQL automatically rounds `innodb_buffer_pool_size` up to **4831838208 bytes**.
+Clearly, the requested `innodb_buffer_pool_size` of `4294967296` is not satisfied. Therefore, MySQL automatically rounds `innodb_buffer_pool_size` to the nearest valid multiple of:
+```
+innodb_buffer_pool_size = (innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances) * n
+```
 
-    - **Buffer Pool Hint Calculation:**
-      ```
-      buffer pool hint = (innodb_buffer_pool_size / innodb_buffer_pool_chunk_size)/2
-      buffer pool hint = (4831838208 / 134217728)/2
-      buffer pool hint = 18
-      ```
+After adjustment, the new `innodb_buffer_pool_size` becomes:
+```
+innodb_buffer_pool_size = (innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances) * 3
+innodb_buffer_pool_size = (134217728 * 12) = 4831838208
+```
 
-    - **CPU Hint**:
-      ```
-      CPU Hint = Available Logical Processors / 4
-      ```
-      Substituting the available processors:
-      ```
-      CPU Hint = 48 / 4 = 12 instances
-      ```
+This is why MySQL automatically rounds `innodb_buffer_pool_size` up to **4831838208 bytes**.
 
-    - **Final Value**:
-      The final value of `innodb_buffer_pool_instances` is the **minimum** of the Buffer Pool Hint and the CPU Hint:
-      ```
-      innodb_buffer_pool_instances = min(Buffer Pool Hint, CPU Hint)
-      innodb_buffer_pool_instances = min(18, 12) = 12 instances
-      ```
+- **Buffer Pool Hint Calculation:**
+```
+buffer pool hint = (innodb_buffer_pool_size / innodb_buffer_pool_chunk_size)/2
+buffer pool hint = (4831838208 / 134217728)/2
+buffer pool hint = 18
+```
+
+- **CPU Hint**:
+```
+CPU Hint = Available Logical Processors / 4
+```
+Substituting the available processors:
+```
+CPU Hint = 48 / 4 = 12 instances
+```
+
+- **Final Value**:
+The final value of `innodb_buffer_pool_instances` is the **minimum** of the Buffer Pool Hint and the CPU Hint:
+```
+innodb_buffer_pool_instances = min(Buffer Pool Hint, CPU Hint)
+innodb_buffer_pool_instances = min(18, 12) = 12 instances
+```
 
 6. **Output**:
    **MySQL 8.0**:
