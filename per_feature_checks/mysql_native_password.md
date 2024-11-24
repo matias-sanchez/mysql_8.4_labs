@@ -63,6 +63,8 @@ Use `anydbver` to deploy MySQL instances in isolated namespaces:
 
 #### **2. Validate Default Plugin States**
 
+---
+
 ##### **a. `default_authentication_plugin` Variable**
 
 To verify the presence and value of the `default_authentication_plugin` variable, run the following command in both MySQL versions:
@@ -121,6 +123,8 @@ If you attempt to reintroduce `default_authentication_plugin` in MySQL 8.4 it ra
 **Notes**
 - MySQL 8.4 no longer supports the `default_authentication_plugin` variable.
 - Any attempt to set this variable results in an "unknown variable" error, as shown in the logs. This confirms that the behavior of default authentication management has fundamentally changed in MySQL 8.4.
+
+---
 
 ##### **b. `mysql_native_password` Plugin Status**
 
