@@ -110,7 +110,6 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 | B            | 4 GiB                | 8                        | 12                       | Rounded to 4.5 GiB in MySQL 8.4 to align with chunk size * instances.           |
 | C            | 2 GiB                | 8                        | 8                        | Memory alignment rules satisfied without rounding in MySQL 8.4.                |
 | D            | 1.5 GiB              | 8                        | 6                        | Adjusted in MySQL 8.4 to match multiple of chunk size and dynamic instance calc.|
-Here is the consolidated **table for all tested scenarios** in **Markdown format** to include at the beginning of your documentation:
 
 ### **Highlights**
 
