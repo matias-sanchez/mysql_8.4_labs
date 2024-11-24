@@ -1,4 +1,4 @@
-### **Comprehensive Lab Guide: Comparing MySQL 8.0 and 8.4 Authentication Plugin Behavior**
+### **Comparing MySQL 8.0 and 8.4 Authentication Plugin Behavior**
 
 ---
 
@@ -7,7 +7,6 @@ This lab demonstrates differences in authentication plugin behavior between **My
 1. **Default Plugin Behavior**: Comparing how `mysql_native_password` and `default_authentication_plugin` are managed.
 2. **Behavior Validation**: Testing default and modified configurations.
 3. **Practical Observations**: Including exact outputs from commands.
-4. **Insights for Percona Support Engineers**: Helping clients transition to modern authentication standards.
 
 ---
 
@@ -92,7 +91,9 @@ Empty set (0.00 sec)
 
 ##### **b. `mysql_native_password` Plugin Status**
 
-Check the status of the `mysql_native_password` plugin:
+Check the status of the `mysql_native_password` plugin in both MySQL versions. Note that in MySQL 8.4, the tool `anydbver` modifies the default configuration by enabling `mysql_native_password`. This is not the default behavior for MySQL 8.4 and must be accounted for in testing.
+
+Run the following command in both MySQL 8.0 and 8.4:
 
 ```sql
 SHOW PLUGINS;
@@ -103,10 +104,29 @@ SHOW PLUGINS;
 | mysql_native_password | ACTIVE   | AUTHENTICATION | NULL | GPL |
 ```
 
-**Output in MySQL 8.4**:
+**Output in MySQL 8.4** (with `anydbver` modification):
 ```plaintext
 | mysql_native_password | ACTIVE   | AUTHENTICATION | NULL | GPL |
 ```
+
+**Explanation**:
+- In MySQL 8.0, `mysql_native_password` is active by default.
+- In MySQL 8.4, **the default behavior disables `mysql_native_password`**. However, when using `anydbver`, the tool includes a configuration in `my.cnf` that enables this plugin by default. This must be manually reverted to test MySQL 8.4's actual default state.
+
+Validate the `anydbver`-added configuration:
+
+```bash
+anydbver exec node0 --namespace=mysql_8_4_test -- grep -i mysql_native_password /etc/my.cnf -B 1
+```
+
+**Output**:
+```plaintext
+# mysql native auth is disabled by default in 8.4
+loose-mysql_native_password=ON
+``` 
+
+**Key Insight**:
+The presence of `loose-mysql_native_password=ON` in `my.cnf` enables the plugin when using `anydbver`, but this is not representative of MySQL 8.4's default behavior. For accurate testing, this configuration must be commented out or removed.
 
 ##### **c. Validate `my.cnf` Configuration in MySQL 8.4**
 
