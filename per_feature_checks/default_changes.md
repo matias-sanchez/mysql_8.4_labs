@@ -640,38 +640,92 @@ MySQL 8.4 dynamically calculates `innodb_buffer_pool_instances` based on:
      - **CPU Hint** ensures optimal use of available processors.
      - The final value is the minimum of these two hints.
 
+### **C. `innodb_page_cleaners`**
+
 ---
 
-##### **C. `innodb_numa_interleave`**
+#### **Overview**
 
-- **Check Default Value in MySQL 8.0**:
+The `innodb_page_cleaners` parameter controls the number of threads used to flush dirty pages from the buffer pool to storage. In MySQL 8.4, this value dynamically matches `innodb_buffer_pool_instances`. Previously, in MySQL 8.0, it had a static default value of **4**.
+
+This change ensures better alignment between buffer pool configuration and page flushing efficiency, especially under write-heavy workloads.
+
+---
+
+#### **Default Value Comparison**
+
+- **MySQL 8.0**:
   ```sql
-  SELECT @@innodb_numa_interleave;
+  SELECT @@innodb_page_cleaners;
   ```
   **Output**:
   ```plaintext
   +-----------------------+
-  | @@innodb_numa_interleave |
+  | @@innodb_page_cleaners |
   +-----------------------+
-  | 0                     |
+  | 4                     |
   +-----------------------+
   ```
 
-- **Check Default Value in MySQL 8.4**:
+- **MySQL 8.4**:
   ```sql
-  SELECT @@innodb_numa_interleave;
+  SELECT @@innodb_page_cleaners, @@innodb_buffer_pool_instances;
   ```
   **Output**:
   ```plaintext
   +-----------------------+
-  | @@innodb_numa_interleave |
+  | @@innodb_page_cleaners |
   +-----------------------+
-  | 1                     |
+  | 6                     | -- Example: matches buffer pool instances
   +-----------------------+
   ```
 
-- **Explanation**:
-  - NUMA interleaving is ON by default in MySQL 8.4, improving memory access on NUMA systems.
+  ```plaintext
+  +------------------------------+
+  | @@innodb_buffer_pool_instances |
+  +------------------------------+
+  | 6                            | -- Dynamically calculated
+  +------------------------------+
+  ```
+
+---
+
+#### **Key Insights**
+
+1. **Dynamic Adjustment**:
+   - In MySQL 8.4, `innodb_page_cleaners` matches `innodb_buffer_pool_instances` by default.
+   - Increasing `innodb_buffer_pool_instances` automatically adjusts `innodb_page_cleaners`.
+
+2. **Performance Benefits**:
+   - Optimized write throughput for high-concurrency workloads.
+   - Threads distribute flush tasks evenly across buffer pool instances.
+
+3. **Static vs. Dynamic Behavior**:
+   - MySQL 8.0: `innodb_page_cleaners` is fixed at **4**.
+   - MySQL 8.4: Dynamically adjusts based on `innodb_buffer_pool_instances`.
+
+---
+
+#### **Quick Test**
+
+1. **Modify Buffer Pool Instances** (MySQL 8.4):
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- bash -c "echo 'innodb_buffer_pool_instances=16' >> /etc/my.cnf"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- systemctl restart mysqld
+   ```
+
+2. **Verify Changes**:
+   ```sql
+   SELECT @@innodb_buffer_pool_instances, @@innodb_page_cleaners;
+   ```
+   **Expected Output**:
+   ```plaintext
+   +------------------------------+-----------------------+
+   | @@innodb_buffer_pool_instances | @@innodb_page_cleaners |
+   +------------------------------+-----------------------+
+   | 16                           | 16                    |
+   +------------------------------+-----------------------+
+   ```
 
 ---
 
