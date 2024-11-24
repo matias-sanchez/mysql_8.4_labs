@@ -104,33 +104,12 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 ---
 
 ### **Table of Scenarios**
-
-| **Buffer Pool Size** | **CPU Count**         | **Expected Behavior**                                      |
-|-----------------------|-----------------------|-----------------------------------------------------------|
-| ≤ 1 GiB              | 1, 2, 4, 8, 16, 32+  | Always 1 instance (same in MySQL 8.0 and 8.4).            |
-| 2 GiB                | 1, 2, 4              | Controlled by CPU Hint (1, 2, or 4 instances).            |
-| 4 GiB                | 1, 2, 4              | Controlled by CPU Hint (1, 2, or 4 instances).            |
-| 4 GiB                | 8, 16                | Controlled by Buffer Pool Hint (final: 4).                |
-| 16 GiB               | 1, 2, 4              | Controlled by CPU Hint (1, 2, or 4 instances).            |
-| 16 GiB               | 8, 16                | Controlled by Buffer Pool Hint (final: 8).                |
-| 16 GiB               | 32, 64               | Controlled by Buffer Pool Hint (final: 8).                |
-| 64 GiB               | 1, 2, 4              | Controlled by CPU Hint (1, 2, or 4 instances).            |
-| 64 GiB               | 8, 16                | Controlled by Buffer Pool Hint (final: 16).               |
-| 64 GiB               | 32, 64               | Controlled by Buffer Pool Hint (final: 16).               |
-| 128 GiB              | 8, 16                | Controlled by Buffer Pool Hint (final: 32).               |
-| 128 GiB              | 32, 64               | Controlled by Buffer Pool Hint (final: 32).               |
-| 256 GiB              | 32, 64               | Controlled by Buffer Pool Hint (final: 64).               |
-
-### **Representative Scenarios for 48 CPUs**
-
-| **Buffer Pool Size** | **Expected Behavior** | **Why Test This Scenario?**                              |
-|-----------------------|-----------------------|---------------------------------------------------------|
-| ≤ 1 GiB              | Always 1 instance    | Tests that small buffer sizes default to 1 instance.    |
-| 4 GiB                | 4 instances          | Tests when Buffer Pool Hint (<12) is limiting factor.   |
-| 16 GiB               | 8 instances          | Tests when Buffer Pool Hint (<12) is limiting factor.   |
-| 64 GiB               | 12 instances         | Tests when CPU Hint (=12) is the limiting factor.       |
-| 128 GiB              | 12 instances         | Tests when CPU Hint (=12) is the limiting factor.       |
-| 256 GiB              | 12 instances         | Tests when CPU Hint (=12) overrides a larger buffer hint.|
+| **Scenario** | **Buffer Pool Size** | **MySQL 8.0 Instances** | **MySQL 8.4 Instances** | **Explanation**                                                                 |
+|--------------|-----------------------|--------------------------|--------------------------|---------------------------------------------------------------------------------|
+| A            | 512 MiB              | 1                        | 1                        | Static for both versions as `innodb_buffer_pool_size ≤ 1 GiB`.                  |
+| B            | 4 GiB                | 8                        | 12                       | Rounded to 4.5 GiB in MySQL 8.4 to align with chunk size * instances.           |
+| C            | 2 GiB                | 8                        | 8                        | Memory alignment rules satisfied without rounding in MySQL 8.4.                |
+| D            | 1.5 GiB              | 8                        | 6                        | Adjusted in MySQL 8.4 to match multiple of chunk size and dynamic instance calc.|
 
 ---
 
