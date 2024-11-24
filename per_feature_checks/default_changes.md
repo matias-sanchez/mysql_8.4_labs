@@ -396,26 +396,26 @@ MySQL 8.4 dynamically calculates `innodb_buffer_pool_instances` based on:
    ```
    innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances * n
    ```
-   - Where:
+   Where:
      - `innodb_buffer_pool_chunk_size` defaults to `128 MiB` (134217728 bytes).
      - `n` is an integer.
-   - The original value requested is:
+   The original value requested is:
      ```
      innodb_buffer_pool_size = 2 GiB = 2147483648 bytes
      ```
 
-   - Since the buffer pool size must be a multiple of:
+   Since the buffer pool size must be a multiple of:
      ```
      innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances
      ```
 
-   - Substituting the default chunk size and calculated instances:
+   Substituting the default chunk size and calculated instances:
      ```
      innodb_buffer_pool_size = 134217728 * 8
      innodb_buffer_pool_size = 1073741824
      ```
 
-   - This satisfies the memory alignment rules. MySQL rounds the value to the nearest valid multiple, which is already **2147483648 bytes**.
+   This satisfies the memory alignment rules. MySQL rounds the value to the nearest valid multiple, which is already **2147483648 bytes**.
 
    - **Buffer Pool Hint Calculation**:
    ```
