@@ -40,7 +40,7 @@ Use `anydbver` to deploy MySQL instances in isolated namespaces:
 - **Deploy MySQL 8.0**:
   ```bash
   NAMESPACE=mysql_8_0_test
-  anydbver deploy mysql:8.0.34 --namespace=$NAMESPACE
+  anydbver deploy mysql:8.0 --namespace=$NAMESPACE
   ```
 
 - **Deploy MySQL 8.4**:
