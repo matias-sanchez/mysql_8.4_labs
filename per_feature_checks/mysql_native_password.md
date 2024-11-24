@@ -216,7 +216,7 @@ Manually re-enable `mysql_native_password`:
 
 3. **Verify plugin state**:
    ```sql
-   SHOW PLUGINS;
+   anydbver exec node0 --namespace=mysql_8_4_test -- mysql -e"SHOW PLUGINS;" | grep -i mysql_native_password
    ```
 
 **Output**:
@@ -236,7 +236,6 @@ Create test users in both versions:
   ```sql
   CREATE USER 'test_user_8_0'@'%' IDENTIFIED WITH 'mysql_native_password' BY 'password';
   GRANT ALL PRIVILEGES ON *.* TO 'test_user_8_0'@'%';
-  FLUSH PRIVILEGES;
   ```
 
 - **MySQL 8.4** (default state where plugin is disabled):
@@ -253,7 +252,6 @@ ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
   ```sql
   CREATE USER 'test_user_8_4'@'%' IDENTIFIED WITH 'mysql_native_password' BY 'password';
   GRANT ALL PRIVILEGES ON *.* TO 'test_user_8_4'@'%';
-  FLUSH PRIVILEGES;
   ```
 
 ---
@@ -262,17 +260,19 @@ ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
 
 - **MySQL 8.0**:
   ```bash
-  mysql -u test_user_8_0 -p'password' -h <server-ip>
+  anydbver exec node0 --namespace=mysql_8_0_test -- mysql -u test_user_8_0 -p'password' -h 127.0.0.1
   ```
   **Output**:
   ```plaintext
-  Welcome to the MySQL monitor...
+  Welcome to the MySQL monitor.  Commands end with ; or \g.
+  Your MySQL connection id is 16
+  Server version: 8.0.39 MySQL Community Server - GPL
   mysql>
   ```
 
 - **MySQL 8.4** (default state):
   ```bash
-  mysql -u test_user_8_4 -p'password' -h <server-ip>
+  anydbver exec node0 --namespace=mysql_8_4_test -- mysql -u test_user_8_4 -p'password' -h 127.0.0.1
   ```
   **Output**:
   ```plaintext
@@ -281,11 +281,13 @@ ERROR 1524 (HY000): Plugin 'mysql_native_password' is not loaded
 
 - **MySQL 8.4** (plugin enabled):
   ```bash
-  mysql -u test_user_8_4 -p'password' -h <server-ip>
+  anydbver exec node0 --namespace=mysql_8_4_test -- mysql -u test_user_8_4 -p'password' -h 127.0.0.1
   ```
   **Output**:
   ```plaintext
-  Welcome to the MySQL monitor...
+  Welcome to the MySQL monitor.  Commands end with ; or \g.
+  Your MySQL connection id is 10
+  Server version: 8.4.3 MySQL Community Server - GPL
   mysql>
   ```
 
