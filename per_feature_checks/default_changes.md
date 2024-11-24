@@ -199,6 +199,76 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
    +-----------------------------+-------+
    ```
 
+###### **Scenario B: `innodb_buffer_pool_size` = 4 GiB**
+
+1. **Remove Existing Configuration**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- bash -c "sed -i '/innodb_buffer_pool_size/d' /etc/my.cnf"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- bash -c "sed -i '/innodb_buffer_pool_size/d' /etc/my.cnf"
+   ```
+
+2. **Set Buffer Pool Size**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- bash -c "echo 'innodb_buffer_pool_size=4294967296' >> /etc/my.cnf"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- bash -c "echo 'innodb_buffer_pool_size=4294967296' >> /etc/my.cnf"
+   ```
+
+3. **Restart MySQL**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- systemctl restart mysqld
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- systemctl restart mysqld
+   ```
+
+4. **Verify Changes**:
+   ```sql
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_size';"
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_size';"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';"
+   ```
+
+5. **Math Calculations**:
+   - **MySQL 8.0**:
+     - Default is always **8 instances** when `innodb_buffer_pool_size > 1 GiB`, regardless of CPU count.
+   - **MySQL 8.4**:
+     - **Buffer Pool Hint**: `(innodb_buffer_pool_size / innodb_buffer_pool_chunk_size) / 2`
+       - Assuming `innodb_buffer_pool_chunk_size = 128 MiB`:
+       - `(4 GiB / 128 MiB) / 2 = 32 / 2 = 16 instances`
+     - **CPU Hint**: `Available Logical Processors / 4`
+       - `48 / 4 = 12 instances`
+     - **Final Value**: Minimum of Buffer Pool Hint (16) and CPU Hint (12) → **4 instances**.
+
+6. **Output**:
+   **MySQL 8.0**:
+   ```plaintext
+   +-------------------------+-----------+
+   | Variable_name           | Value     |
+   +-------------------------+-----------+
+   | innodb_buffer_pool_size | 4294967296 |
+   +-------------------------+-----------+
+   
+   +-----------------------------+-------+
+   | Variable_name               | Value |
+   +-----------------------------+-------+
+   | innodb_buffer_pool_instances| 8     |
+   +-----------------------------+-------+
+   ```
+
+   **MySQL 8.4**:
+   ```plaintext
+   +-------------------------+-----------+
+   | Variable_name           | Value     |
+   +-------------------------+-----------+
+   | innodb_buffer_pool_size | 4294967296 |
+   +-------------------------+-----------+
+   
+   +-----------------------------+-------+
+   | Variable_name               | Value |
+   +-----------------------------+-------+
+   | innodb_buffer_pool_instances| 4     |
+   +-----------------------------+-------+
+   ```
+
 ---
 
 ##### **C. `innodb_numa_interleave`**
