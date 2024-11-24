@@ -229,12 +229,15 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
    anydbver exec node0 --namespace=mysql_8_4_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';"
    ```
 
-5. **Math Calculations**:
-   - **MySQL 8.0**:
-     - Default behavior in MySQL 8.0 assigns **8 instances** for any `innodb_buffer_pool_size > 1 GiB`, regardless of CPU count. This is a static configuration.
+### **Math Calculations**
 
-    - **MySQL 8.4**:
-    - MySQL 8.4 dynamically calculates the `innodb_buffer_pool_instances` based on:
+#### **MySQL 8.0**
+- **Static Behavior**: MySQL 8.0 always assigns **8 buffer pool instances** for any `innodb_buffer_pool_size > 1 GiB`, regardless of CPU count. 
+
+---
+
+#### **MySQL 8.4**
+MySQL 8.4 dynamically calculates `innodb_buffer_pool_instances` based on:
 
       ```
       innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances * n
