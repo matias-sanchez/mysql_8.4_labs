@@ -270,7 +270,7 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 
       This is why MySQL automatically rounds `innodb_buffer_pool_size` up to **4831838208 bytes**.
 
-      **Buffer Pool Hint:**
+      **Buffer Pool Hint Calculation:**
       ```
       buffer pool hint = (innodb_buffer_pool_size / innodb_buffer_pool_chunk_size)/2
       buffer pool hint = (4831838208 / 134217728)/2
@@ -323,6 +323,158 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
    | innodb_buffer_pool_instances| 12    |
    +-----------------------------+-------+
    ```
+
+---
+
+###### **Scenario C: `innodb_buffer_pool_size` = 2 GiB**
+
+1. **Remove Existing Configuration**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- bash -c "sed -i '/innodb_buffer_pool_size/d' /etc/my.cnf"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- bash -c "sed -i '/innodb_buffer_pool_size/d' /etc/my.cnf"
+   ```
+
+2. **Set Buffer Pool Size**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- bash -c "echo 'innodb_buffer_pool_size=2147483648' >> /etc/my.cnf"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- bash -c "echo 'innodb_buffer_pool_size=2147483648' >> /etc/my.cnf"
+   ```
+
+3. **Restart MySQL**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- systemctl restart mysqld
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- systemctl restart mysqld
+   ```
+
+4. **Verify Changes**:
+   ```sql
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_size';"
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_size';"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';"
+   ```
+
+---
+
+### **Math Calculations**
+
+#### **MySQL 8.0**
+- **Static Behavior**: MySQL 8.0 always assigns **8 buffer pool instances** for any `innodb_buffer_pool_size > 1 GiB`, regardless of CPU count. 
+
+---
+
+#### **MySQL 8.4**
+MySQL 8.4 dynamically calculates `innodb_buffer_pool_instances` based on:
+
+1. **Buffer Pool Hint**:
+   ```
+   innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances * n
+   ```
+   - Where:
+     - `innodb_buffer_pool_chunk_size` defaults to `128 MiB` (134217728 bytes).
+     - `n` is an integer.
+   - The original value requested is:
+     ```
+     innodb_buffer_pool_size = 2 GiB = 2147483648 bytes
+     ```
+
+   - Since the buffer pool size must be a multiple of:
+     ```
+     innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances
+     ```
+
+   - Substituting the default chunk size and calculated instances:
+     ```
+     innodb_buffer_pool_size = 134217728 * 8
+     innodb_buffer_pool_size = 1073741824
+     ```
+
+   - This satisfies the memory alignment rules. MySQL rounds the value to the nearest valid multiple, which is already **2147483648 bytes**.
+
+   **Buffer Pool Hint Calculation**:
+   ```
+   buffer_pool_hint = (innodb_buffer_pool_size / innodb_buffer_pool_chunk_size) / 2
+   buffer_pool_hint = (2147483648 / 134217728) / 2
+   buffer_pool_hint = 16 / 2
+   buffer_pool_hint = 8 instances
+   ```
+
+---
+
+2. **CPU Hint**:
+   ```
+   CPU Hint = Available Logical Processors / 4
+   ```
+   Substituting the available processors:
+   ```
+   CPU Hint = 48 / 4 = 12 instances
+   ```
+
+---
+
+3. **Final Value**:
+   The final value of `innodb_buffer_pool_instances` is the **minimum** of the Buffer Pool Hint and the CPU Hint:
+   ```
+   innodb_buffer_pool_instances = min(Buffer Pool Hint, CPU Hint)
+   innodb_buffer_pool_instances = min(8, 12)
+   innodb_buffer_pool_instances = 8 instances
+   ```
+
+---
+
+### **Output**
+
+#### **MySQL 8.0**:
+```plaintext
++-------------------------+-----------+
+| Variable_name           | Value     |
++-------------------------+-----------+
+| innodb_buffer_pool_size | 2147483648 |
++-------------------------+-----------+
+
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_buffer_pool_instances| 8     |
++-----------------------------+-------+
+```
+
+#### **MySQL 8.4**:
+```plaintext
++-------------------------+------------+
+| Variable_name           | Value      |
++-------------------------+------------+
+| innodb_buffer_pool_size | 2147483648 |
++-------------------------+------------+
+
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_buffer_pool_instances| 8     |
++-----------------------------+-------+
+```
+
+---
+
+### **Explanation of Adjustments**
+1. **Buffer Pool Size Rounding**:
+   - MySQL 8.4 automatically adjusts `innodb_buffer_pool_size` to ensure it is a multiple of:
+     ```
+     innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances
+     ```
+   - With `innodb_buffer_pool_chunk_size = 134217728` (128 MiB) and `innodb_buffer_pool_instances = 8`, the value is:
+     ```
+     innodb_buffer_pool_size = 134217728 * 8 = 2147483648 bytes
+     ```
+
+2. **MySQL 8.0 Behavior**:
+   - Always uses **8 buffer pool instances** when `innodb_buffer_pool_size > 1 GiB`. The CPU count is ignored, and the configuration is static.
+
+3. **MySQL 8.4 Behavior**:
+   - Dynamically adjusts `innodb_buffer_pool_instances` based on hardware resources and memory configuration:
+     - **Buffer Pool Hint** ensures proper memory alignment with chunk size.
+     - **CPU Hint** ensures optimal use of available processors.
+     - The final value is the minimum of these two hints. 
 
 ---
 
