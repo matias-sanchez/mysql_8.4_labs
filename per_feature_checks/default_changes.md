@@ -190,6 +190,162 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 
 ---
 
+### **Scenario B: `innodb_buffer_pool_size` = 2 GiB**
+
+---
+
+#### **Steps**
+
+1. **Remove Existing Configuration**:
+   Ensure any previous `innodb_buffer_pool_size` configurations are removed:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- bash -c "sed -i '/innodb_buffer_pool_size/d' /etc/my.cnf"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- bash -c "sed -i '/innodb_buffer_pool_size/d' /etc/my.cnf"
+   ```
+
+2. **Set Buffer Pool Size**:
+   Add the buffer pool size configuration for both MySQL versions:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- bash -c "echo 'innodb_buffer_pool_size=2147483648' >> /etc/my.cnf"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- bash -c "echo 'innodb_buffer_pool_size=2147483648' >> /etc/my.cnf"
+   ```
+
+3. **Control CPU Count**:
+   Simulate different CPU counts (1, 2, 4) by limiting the available CPUs to the container:
+
+   - **For 1 CPU**:
+     ```bash
+     docker update --cpuset-cpus=0 mysql_8_0_innodb_test-matias-sanchez-node0
+     docker update --cpuset-cpus=0 mysql_8_4_innodb_test-matias-sanchez-node0
+     ```
+
+   - **For 2 CPUs**:
+     ```bash
+     docker update --cpuset-cpus=0-1 mysql_8_0_innodb_test-matias-sanchez-node0
+     docker update --cpuset-cpus=0-1 mysql_8_4_innodb_test-matias-sanchez-node0
+     ```
+
+   - **For 4 CPUs**:
+     ```bash
+     docker update --cpuset-cpus=0-3 mysql_8_0_innodb_test-matias-sanchez-node0
+     docker update --cpuset-cpus=0-3 mysql_8_4_innodb_test-matias-sanchez-node0
+     ```
+
+4. **Restart MySQL**:
+   Restart the MySQL server after applying changes:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- systemctl restart mysqld
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- systemctl restart mysqld
+   ```
+
+5. **Verify Changes**:
+   Run the following commands to validate the `innodb_buffer_pool_size` and `innodb_buffer_pool_instances` values for each configuration:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_size';"
+   anydbver exec node0 --namespace=mysql_8_0_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_size';"
+   anydbver exec node0 --namespace=mysql_8_4_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';"
+   ```
+
+6. **Rollback CPU Count**:
+   After testing, reset the container to its full CPU allocation (48 CPUs):
+   ```bash
+   docker update --cpuset-cpus=0-47 mysql_8_0_innodb_test-matias-sanchez-node0
+   docker update --cpuset-cpus=0-47 mysql_8_4_innodb_test-matias-sanchez-node0
+   ```
+
+---
+
+#### **Math Calculations**
+
+- **Buffer Pool Size**: `innodb_buffer_pool_size = 2 GiB`
+- **Buffer Pool Chunk Size**: Default = 128 MiB
+
+##### **CPU Hint**:
+\[ \text{CPU Hint} = \frac{\text{Logical CPUs}}{4} \]
+
+##### **Buffer Pool Hint**:
+\[ \text{Buffer Pool Hint} = \left(\frac{\text{innodb_buffer_pool_size}}{\text{innodb_buffer_pool_chunk_size}}\right) / 2 \]
+
+---
+
+#### **Results**
+
+| **CPU Count** | **MySQL 8.0 Behavior**                           | **MySQL 8.4 Behavior**                                                      |
+|---------------|--------------------------------------------------|-----------------------------------------------------------------------------|
+| **1 CPU**     | 8 instances (default for MySQL 8.0, CPU Hint ignored) | 1 instance (**min(Buffer Pool Hint, CPU Hint) → min(8, 1)**)                |
+| **2 CPUs**    | 8 instances (default for MySQL 8.0, CPU Hint ignored) | 2 instances (**min(Buffer Pool Hint, CPU Hint) → min(8, 2)**)               |
+| **4 CPUs**    | 8 instances (default for MySQL 8.0, CPU Hint ignored) | 4 instances (**min(Buffer Pool Hint, CPU Hint) → min(8, 4)**)               |
+
+---
+
+#### **Output**
+
+**MySQL 8.0**:
+```plaintext
++-------------------------+-----------+
+| Variable_name           | Value     |
++-------------------------+-----------+
+| innodb_buffer_pool_size | 2147483648 |
++-------------------------+-----------+
+
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_buffer_pool_instances| 8     |
++-----------------------------+-------+
+```
+
+**MySQL 8.4 (1 CPU)**:
+```plaintext
++-------------------------+-----------+
+| Variable_name           | Value     |
++-------------------------+-----------+
+| innodb_buffer_pool_size | 2147483648 |
++-------------------------+-----------+
+
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_buffer_pool_instances| 1     |
++-----------------------------+-------+
+```
+
+**MySQL 8.4 (2 CPUs)**:
+```plaintext
++-------------------------+-----------+
+| Variable_name           | Value     |
++-------------------------+-----------+
+| innodb_buffer_pool_size | 2147483648 |
++-------------------------+-----------+
+
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_buffer_pool_instances| 2     |
++-----------------------------+-------+
+```
+
+**MySQL 8.4 (4 CPUs)**:
+```plaintext
++-------------------------+-----------+
+| Variable_name           | Value     |
++-------------------------+-----------+
+| innodb_buffer_pool_size | 2147483648 |
++-------------------------+-----------+
+
++-----------------------------+-------+
+| Variable_name               | Value |
++-----------------------------+-------+
+| innodb_buffer_pool_instances| 4     |
++-----------------------------+-------+
+```
+
+This scenario confirms that `innodb_buffer_pool_instances` in MySQL 8.4 is dynamically controlled by the **CPU Hint**, whereas MySQL 8.0 defaults to 8 instances for buffer pool sizes > 1 GiB, irrespective of the CPU count.
+
+---
+
+
 #### **Summary of Observations**
 
 | **Buffer Pool Size**          | **MySQL 8.0 Default** | **MySQL 8.4 Behavior**         |
