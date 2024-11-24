@@ -233,30 +233,50 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
    - **MySQL 8.0**:
      - Default behavior in MySQL 8.0 assigns **8 instances** for any `innodb_buffer_pool_size > 1 GiB`, regardless of CPU count. This is a static configuration.
 
-   - **MySQL 8.4**:
-     - MySQL 8.4 dynamically calculates the `innodb_buffer_pool_instances` based on:
-       - **Buffer Pool Hint**:
-         innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances * n (n is an integer)
-         innodb_buffer_pool_chunk_size defaults to 128 MiB (134217728 bytes).
+- **MySQL 8.4**:
+  - MySQL 8.4 dynamically calculates the `innodb_buffer_pool_instances` based on:
 
-         The original value requested is 4 GiB (4294967296 bytes). However, since the buffer pool size must be a multiple of:
-         innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances
+    - **Buffer Pool Hint**:
+      ```
+      innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances * n
+      ```
+      Where:
+      - `innodb_buffer_pool_chunk_size` defaults to `128 MiB` (134217728 bytes).
+      - `n` is an integer.
 
-         Substituting the default chunk size and calculated instances (12):
-         innodb_buffer_pool_size = 134217728 * 12
-         innodb_buffer_pool_size = 4831838208
+      The original value requested is:
+      ```
+      innodb_buffer_pool_size = 4 GiB = 4294967296 bytes
+      ```
 
-         This is why MySQL automatically rounds `innodb_buffer_pool_size` up to 4831838208 bytes.
+      However, since the buffer pool size must be a multiple of:
+      ```
+      innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances
+      ```
 
-       - **CPU Hint**:
-         CPU Hint = Available Logical Processors / 4
-         Substituting the value:
-         CPU Hint = 48 / 4 = 12 instances
+      Substituting the default chunk size and calculated instances (12):
+      ```
+      innodb_buffer_pool_size = 134217728 * 12
+      innodb_buffer_pool_size = 4831838208
+      ```
 
-       - **Final Value**:
-         The final value of `innodb_buffer_pool_instances` is the minimum of the Buffer Pool Hint and the CPU Hint:
-         innodb_buffer_pool_instances = min(Buffer Pool Hint, CPU Hint)
-         innodb_buffer_pool_instances = min(12, 12) = 12 instances
+      This is why MySQL automatically rounds `innodb_buffer_pool_size` up to **4831838208 bytes**.
+
+    - **CPU Hint**:
+      ```
+      CPU Hint = Available Logical Processors / 4
+      ```
+      Substituting the available processors:
+      ```
+      CPU Hint = 48 / 4 = 12 instances
+      ```
+
+    - **Final Value**:
+      The final value of `innodb_buffer_pool_instances` is the **minimum** of the Buffer Pool Hint and the CPU Hint:
+      ```
+      innodb_buffer_pool_instances = min(Buffer Pool Hint, CPU Hint)
+      innodb_buffer_pool_instances = min(12, 12) = 12 instances
+      ```
 
 6. **Output**:
    **MySQL 8.0**:
@@ -479,13 +499,3 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 2. Support Engineers should leverage these defaults to optimize configurations based on workload and hardware.
 
 This simulation provides practical insights into the changes and prepares teams for real-world troubleshooting.
-
-# Math Example in Markdown
-
-## Inline Math
-The circumference of a circle is given by the formula $C = 2\pi r$, where $r$ is the radius.
-
-## Block Math
-The quadratic formula is:
-
-$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$
