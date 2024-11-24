@@ -249,18 +249,33 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
       innodb_buffer_pool_size = 4 GiB = 4294967296 bytes
       ```
 
-      However, since the buffer pool size must be a multiple of:
-      ```
-      innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances
-      ```
+      However, since the buffer pool size must be a multiple of: `innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances`
 
       Substituting the default chunk size and calculated instances (12):
       ```
       innodb_buffer_pool_size = 134217728 * 12
-      innodb_buffer_pool_size = 4831838208
+      innodb_buffer_pool_size = 1610612736
+      ```
+    
+      Clearly, the requested `innodb_buffer_pool_size` of `4294967296` is not satisfied. Therefore, MySQL automatically rounds `innodb_buffer_pool_size` to the nearest valid multiple of:
+      ```
+      innodb_buffer_pool_size = (innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances) * n
+      ```
+
+      After adjustment, the new `innodb_buffer_pool_size` becomes:
+      ```
+      innodb_buffer_pool_size = (innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances) * 3
+      innodb_buffer_pool_size = (134217728 * 12) = 4831838208
       ```
 
       This is why MySQL automatically rounds `innodb_buffer_pool_size` up to **4831838208 bytes**.
+
+      **Buffer Pool Hint:**
+      ```
+      buffer pool hint = (innodb_buffer_pool_size / innodb_buffer_pool_chunk_size)/2
+      buffer pool hint = (4831838208 / 134217728)/2
+      buffer pool hint = 18
+      ```
 
     - **CPU Hint**:
       ```
@@ -275,7 +290,7 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
       The final value of `innodb_buffer_pool_instances` is the **minimum** of the Buffer Pool Hint and the CPU Hint:
       ```
       innodb_buffer_pool_instances = min(Buffer Pool Hint, CPU Hint)
-      innodb_buffer_pool_instances = min(12, 12) = 12 instances
+      innodb_buffer_pool_instances = min(18, 12) = 12 instances
       ```
 
 6. **Output**:
