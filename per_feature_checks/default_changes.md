@@ -97,7 +97,7 @@ The `innodb_buffer_pool_instances` parameter in MySQL has undergone adjustments 
 
 ---
 
-#### **2. Test Dynamic Behavior with `anydbver`**
+#### **2. Test Behavior with `anydbver`**
 
 This section explores the behavior of `innodb_buffer_pool_instances` under various configurations using the `anydbver` tool, with a clear comparison between MySQL 8.0 and MySQL 8.4.
 
