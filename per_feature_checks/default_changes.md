@@ -236,7 +236,6 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 - **MySQL 8.4**:
   - MySQL 8.4 dynamically calculates the `innodb_buffer_pool_instances` based on:
 
-    - **Buffer Pool Hint**:
       ```
       innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances * n
       ```
@@ -366,7 +365,6 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 #### **MySQL 8.4**
 MySQL 8.4 dynamically calculates `innodb_buffer_pool_instances` based on:
 
-1. **Buffer Pool Hint**:
    ```
    innodb_buffer_pool_size = innodb_buffer_pool_chunk_size * innodb_buffer_pool_instances * n
    ```
