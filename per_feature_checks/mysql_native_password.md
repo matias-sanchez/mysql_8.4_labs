@@ -335,7 +335,6 @@ WHERE
 | User           | Host    | plugin                |
 |----------------|---------|-----------------------|
 | test_user_8_0  | %       | mysql_native_password |
-| test_user_8_4  | %       | mysql_native_password |
 ```
 
 ---
@@ -344,9 +343,7 @@ WHERE
 
 | **Feature**                     | **MySQL 8.0**                         | **MySQL 8.4 (Default)**                | **MySQL 8.4 (Plugin Enabled)**         |
 |---------------------------------|----------------------------------------|----------------------------------------|----------------------------------------|
-| `default_authentication_plugin` |
-
- Exists, `caching_sha2_password`        | Not available                          | Not available                          |
+| `default_authentication_plugin` | Exists, `caching_sha2_password`        | Not available                          | Not available                          |
 | `mysql_native_password` Status  | Active                                | Disabled                               | Active                                 |
 | User Creation                   | Supported                             | Fails due to disabled plugin           | Supported                              |
 | Authentication Behavior         | Login successful                     | Login fails                            | Login successful                       |
