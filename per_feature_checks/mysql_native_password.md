@@ -65,8 +65,6 @@ Use `anydbver` to deploy MySQL instances in isolated namespaces:
 
 ##### **a. `default_authentication_plugin` Variable**
 
-**Check for the `default_authentication_plugin` Variable**
-
 To verify the presence and value of the `default_authentication_plugin` variable, run the following command in both MySQL versions:
 
 ```sql
@@ -95,13 +93,13 @@ Empty set (0.00 sec)
 
 **Attempt to Enable `default_authentication_plugin` in MySQL 8.4**
 
-If you attempt to reintroduce `default_authentication_plugin` in MySQL 8.4 using the configuration file or dynamically via SQL, it raises an error.
+If you attempt to reintroduce `default_authentication_plugin` in MySQL 8.4 it raises an error.
 
  **Steps to Reproduce the Error**
 
 1. Modify the configuration file (`my.cnf`) to include the variable:
    ```ini
-   default_authentication_plugin=caching_sha2_password
+   anydbver exec node0 --namespace=mysql_8_4_test -- bash -c "echo 'default_authentication_plugin=caching_sha2_password' >> /etc/my.cnf"
    ```
 
 2. Restart the MySQL server:
