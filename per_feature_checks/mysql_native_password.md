@@ -65,7 +65,9 @@ Use `anydbver` to deploy MySQL instances in isolated namespaces:
 
 ##### **a. `default_authentication_plugin` Variable**
 
-Run the following command in both MySQL versions to check for `default_authentication_plugin`:
+**Check for the `default_authentication_plugin` Variable**
+
+To verify the presence and value of the `default_authentication_plugin` variable, run the following command in both MySQL versions:
 
 ```sql
 SHOW VARIABLES LIKE 'default_authentication_plugin';
@@ -87,7 +89,40 @@ Empty set (0.00 sec)
 
 **Explanation**:
 - In MySQL 8.0, the `default_authentication_plugin` variable exists and defaults to `caching_sha2_password`.
-- In MySQL 8.4, this variable has been removed.
+- In MySQL 8.4, the `default_authentication_plugin` variable has been removed, reflecting changes in authentication plugin management.
+
+---
+
+**Attempt to Enable `default_authentication_plugin` in MySQL 8.4**
+
+If you attempt to reintroduce `default_authentication_plugin` in MySQL 8.4 using the configuration file or dynamically via SQL, it raises an error.
+
+ **Steps to Reproduce the Error**
+
+1. Modify the configuration file (`my.cnf`) to include the variable:
+   ```ini
+   default_authentication_plugin=caching_sha2_password
+   ```
+
+2. Restart the MySQL server:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_test -- systemctl restart mysqld
+   ```
+
+3. Inspect the error log:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_test -- tail -n 10 /var/log/mysqld.log
+   ```
+
+**Error Observed in MySQL 8.4**:
+```plaintext
+2024-11-22T12:18:34.866485Z 0 [ERROR] [MY-000067] [Server] unknown variable 'default_authentication_plugin=caching_sha2_password'.
+2024-11-22T12:18:34.867367Z 0 [ERROR] [MY-010119] [Server] Aborting
+```
+
+**Notes**
+- MySQL 8.4 no longer supports the `default_authentication_plugin` variable.
+- Any attempt to set this variable results in an "unknown variable" error, as shown in the logs. This confirms that the behavior of default authentication management has fundamentally changed in MySQL 8.4.
 
 ##### **b. `mysql_native_password` Plugin Status**
 
