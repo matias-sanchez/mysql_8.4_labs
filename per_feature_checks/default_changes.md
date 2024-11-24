@@ -79,38 +79,202 @@ anydbver deploy mysql:8.4 --namespace=$NAMESPACE
 
 ---
 
-##### **B. `innodb_buffer_pool_instances`**
+### **B. `innodb_buffer_pool_instances`**
 
-- **Check Default Behavior in MySQL 8.0**:
-  ```sql
-  SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
-  ```
-  **Output**:
-  ```plaintext
-  +-----------------------------+-------+
-  | Variable_name               | Value |
-  +-----------------------------+-------+
-  | innodb_buffer_pool_instances| 8     |
-  +-----------------------------+-------+
-  ```
+---
 
-- **Check Default Behavior in MySQL 8.4**:
-  ```sql
-  SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
-  ```
-  **Output**:
-  ```plaintext
-  +-----------------------------+-------+
-  | Variable_name               | Value |
-  +-----------------------------+-------+
-  | innodb_buffer_pool_instances| 1     |
-  +-----------------------------+-------+
-  ```
+#### **Default Behavior Changes**
 
-- **Explanation**:
-  - MySQL 8.4 adapts `innodb_buffer_pool_instances` dynamically:
-    - If `innodb_buffer_pool_size` ≤ 1 GiB, it defaults to 1.
-    - Larger sizes calculate based on memory and CPU.
+The `innodb_buffer_pool_instances` parameter in MySQL has undergone significant changes between MySQL 8.0 and MySQL 8.4, introducing dynamic behavior based on memory size and CPU availability. The following table summarizes these changes:
+
+| **Buffer Pool Size**          | **MySQL 8.0 Default** | **MySQL 8.4 Behavior**                                                                                       |
+|--------------------------------|-----------------------|-------------------------------------------------------------------------------------------------------------|
+| ≤ 1 GiB                       | 8 Instances          | 1 Instance                                                                                                 |
+| > 1 GiB                       | 8 Instances          | Dynamically calculated based on:                                                                           |
+|                                |                       | - **Buffer Pool Hint**: `(innodb_buffer_pool_size / innodb_buffer_pool_chunk_size) / 2`                    |
+|                                |                       | - **CPU Hint**: `Available Logical Processors / 4`                                                        |
+|                                |                       | - Final value is the **minimum of the two hints**, constrained to [1, 64].                                 |
+
+---
+
+#### **2. Simulating Dynamic Behavior with `anydbver`**
+
+This section explores the dynamic behavior of `innodb_buffer_pool_instances` in MySQL 8.4 under various configurations using the `anydbver` tool. For clarity, all tests include the equivalent behavior in MySQL 8.0 for comparison.
+
+---
+
+##### **Step 1: Reset and Configure `innodb_buffer_pool_size`**
+
+To accurately test the parameter, ensure previous configurations are removed and then set a new `innodb_buffer_pool_size` value:
+
+1. **Remove Existing Configuration**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "sed -i '/innodb_buffer_pool_size/d' /etc/my.cnf"
+   ```
+
+2. **Add New Configuration**:
+   Replace `<BUFFER_SIZE>` with the desired buffer size for the test:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "echo 'innodb_buffer_pool_size=<BUFFER_SIZE>' >> /etc/my.cnf"
+   ```
+
+3. **Restart MySQL**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- systemctl restart mysqld
+   ```
+
+4. **Verify Changes**:
+   ```sql
+   SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
+   ```
+
+---
+
+##### **Step 2: Test Scenarios**
+
+The following scenarios test various `innodb_buffer_pool_size` values to observe the behavior of `innodb_buffer_pool_instances` in MySQL 8.4 compared to MySQL 8.0:
+
+---
+
+###### **Scenario A: `innodb_buffer_pool_size` = 512 MiB**
+
+- **Set Buffer Pool Size**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "echo 'innodb_buffer_pool_size=536870912' >> /etc/my.cnf"
+   ```
+
+- **Restart and Check**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- systemctl restart mysqld
+   ```
+
+- **Expected Output**:
+   ```sql
+   SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
+   ```
+   **MySQL 8.4**:
+   ```plaintext
+   +-----------------------------+-------+
+   | Variable_name               | Value |
+   +-----------------------------+-------+
+   | innodb_buffer_pool_instances| 1     |
+   +-----------------------------+-------+
+   ```
+   **MySQL 8.0**:
+   Always 8 instances.
+
+---
+
+###### **Scenario B: `innodb_buffer_pool_size` = 4 GiB**
+
+- **Set Buffer Pool Size**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "echo 'innodb_buffer_pool_size=4294967296' >> /etc/my.cnf"
+   ```
+
+- **Restart and Check**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- systemctl restart mysqld
+   ```
+
+- **Expected Output**:
+   ```sql
+   SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
+   ```
+   **MySQL 8.4**:
+   ```plaintext
+   +-----------------------------+-------+
+   | Variable_name               | Value |
+   +-----------------------------+-------+
+   | innodb_buffer_pool_instances| 4     |
+   +-----------------------------+-------+
+   ```
+   **MySQL 8.0**:
+   Always 8 instances.
+
+---
+
+###### **Scenario C: `innodb_buffer_pool_size` = 16 GiB**
+
+- **Set Buffer Pool Size**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "echo 'innodb_buffer_pool_size=17179869184' >> /etc/my.cnf"
+   ```
+
+- **Restart and Check**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- systemctl restart mysqld
+   ```
+
+- **Expected Output**:
+   ```sql
+   SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
+   ```
+   **MySQL 8.4**:
+   ```plaintext
+   +-----------------------------+-------+
+   | Variable_name               | Value |
+   +-----------------------------+-------+
+   | innodb_buffer_pool_instances| 8     |
+   +-----------------------------+-------+
+   ```
+   **MySQL 8.0**:
+   Always 8 instances.
+
+---
+
+###### **Scenario D: `innodb_buffer_pool_size` = 64 GiB**
+
+- **Set Buffer Pool Size**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "echo 'innodb_buffer_pool_size=68719476736' >> /etc/my.cnf"
+   ```
+
+- **Restart and Check**:
+   ```bash
+   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- systemctl restart mysqld
+   ```
+
+- **Expected Output**:
+   ```sql
+   SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
+   ```
+   **MySQL 8.4**:
+   ```plaintext
+   +-----------------------------+-------+
+   | Variable_name               | Value |
+   +-----------------------------+-------+
+   | innodb_buffer_pool_instances| 16    |
+   +-----------------------------+-------+
+   ```
+   **MySQL 8.0**:
+   Always 8 instances.
+
+---
+
+#### **Summary of Observations**
+
+| **Buffer Pool Size**          | **MySQL 8.0 Default** | **MySQL 8.4 Behavior**         |
+|--------------------------------|-----------------------|---------------------------------|
+| 512 MiB                       | 8 Instances          | 1 Instance                    |
+| 4 GiB                         | 8 Instances          | 4 Instances                   |
+| 16 GiB                        | 8 Instances          | 8 Instances                   |
+| 64 GiB                        | 8 Instances          | 16 Instances                  |
+
+---
+
+#### **Conclusion**
+
+1. **Dynamic Scaling in MySQL 8.4**:
+   - Improves memory utilization by adapting buffer pool instances based on workload size and CPU availability.
+   - Reduces overhead for small workloads while maintaining scalability for larger environments.
+
+2. **Comparison with MySQL 8.0**:
+   - MySQL 8.0 defaults to static behavior (8 instances) regardless of configuration, potentially leading to inefficiency.
+
+3. **Recommendations**:
+   - Use MySQL 8.4 defaults for most workloads, as they are optimized for modern systems.
+   - Adjust manually only when specific workloads require customization.
 
 ---
 
