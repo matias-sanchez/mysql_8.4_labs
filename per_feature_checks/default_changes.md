@@ -103,6 +103,8 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
 
 ---
 
+---
+
 ###### **Scenario A: `innodb_buffer_pool_size` = 512 MiB**
 
 1. **Remove Existing Configuration**:
@@ -131,30 +133,21 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
    anydbver exec node0 --namespace=mysql_8_4_innodb_test -- mysql -e"SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';"
    ```
 
-5. **Output**:
+5. **Math Calculations**:
+   - **MySQL 8.0**:
+     - Default is 1 instance because `innodb_buffer_pool_size` ≤ 1 GiB.
+   - **MySQL 8.4**:
+     - Default is also 1 instance because `innodb_buffer_pool_size` ≤ 1 GiB.
+
+6. **Output**:
    **MySQL 8.0**:
    ```plaintext
-+-------------------------+-----------+
-| Variable_name           | Value     |
-+-------------------------+-----------+
-| innodb_buffer_pool_size | 536870912 |
-+-------------------------+-----------+
-
-   +-----------------------------+-------+
-   | Variable_name               | Value |
-   +-----------------------------+-------+
-   | innodb_buffer_pool_instances| 1     |
-   +-----------------------------+-------+
-   ```
-   **MySQL 8.0**:
-   ```plaintext
-
    +-------------------------+-----------+
-| Variable_name           | Value     |
-+-------------------------+-----------+
-| innodb_buffer_pool_size | 536870912 |
-+-------------------------+-----------+
-
+   | Variable_name           | Value     |
+   +-------------------------+-----------+
+   | innodb_buffer_pool_size | 536870912 |
+   +-------------------------+-----------+
+   
    +-----------------------------+-------+
    | Variable_name               | Value |
    +-----------------------------+-------+
@@ -162,129 +155,18 @@ This section explores the behavior of `innodb_buffer_pool_instances` under vario
    +-----------------------------+-------+
    ```
 
----
-
-###### **Scenario B: `innodb_buffer_pool_size` = 4 GiB**
-
-1. **Remove Existing Configuration**:
-   ```bash
-   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "sed -i '/innodb_buffer_pool_size/d' /etc/my.cnf"
-   ```
-
-2. **Set Buffer Pool Size**:
-   ```bash
-   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "echo 'innodb_buffer_pool_size=4294967296' >> /etc/my.cnf"
-   ```
-
-3. **Restart MySQL**:
-   ```bash
-   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- systemctl restart mysqld
-   ```
-
-4. **Verify Changes**:
-   ```sql
-   SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
-   ```
-
-5. **Expected Output**:
    **MySQL 8.4**:
    ```plaintext
+   +-------------------------+-----------+
+   | Variable_name           | Value     |
+   +-------------------------+-----------+
+   | innodb_buffer_pool_size | 536870912 |
+   +-------------------------+-----------+
+   
    +-----------------------------+-------+
    | Variable_name               | Value |
    +-----------------------------+-------+
-   | innodb_buffer_pool_instances| 4     |
-   +-----------------------------+-------+
-   ```
-   **MySQL 8.0**:
-   ```plaintext
-   +-----------------------------+-------+
-   | Variable_name               | Value |
-   +-----------------------------+-------+
-   | innodb_buffer_pool_instances| 8     |
-   +-----------------------------+-------+
-   ```
-
----
-
-###### **Scenario C: `innodb_buffer_pool_size` = 16 GiB**
-
-1. **Remove Existing Configuration**:
-   ```bash
-   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "sed -i '/innodb_buffer_pool_size/d' /etc/my.cnf"
-   ```
-
-2. **Set Buffer Pool Size**:
-   ```bash
-   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "echo 'innodb_buffer_pool_size=17179869184' >> /etc/my.cnf"
-   ```
-
-3. **Restart MySQL**:
-   ```bash
-   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- systemctl restart mysqld
-   ```
-
-4. **Verify Changes**:
-   ```sql
-   SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
-   ```
-
-5. **Expected Output**:
-   **MySQL 8.4**:
-   ```plaintext
-   +-----------------------------+-------+
-   | Variable_name               | Value |
-   +-----------------------------+-------+
-   | innodb_buffer_pool_instances| 8     |
-   +-----------------------------+-------+
-   ```
-   **MySQL 8.0**:
-   ```plaintext
-   +-----------------------------+-------+
-   | Variable_name               | Value |
-   +-----------------------------+-------+
-   | innodb_buffer_pool_instances| 8     |
-   +-----------------------------+-------+
-   ```
-
----
-
-###### **Scenario D: `innodb_buffer_pool_size` = 64 GiB**
-
-1. **Remove Existing Configuration**:
-   ```bash
-   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "sed -i '/innodb_buffer_pool_size/d' /etc/my.cnf"
-   ```
-
-2. **Set Buffer Pool Size**:
-   ```bash
-   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- bash -c "echo 'innodb_buffer_pool_size=68719476736' >> /etc/my.cnf"
-   ```
-
-3. **Restart MySQL**:
-   ```bash
-   anydbver exec node0 --namespace=mysql_8_4_buffer_pool_test -- systemctl restart mysqld
-   ```
-
-4. **Verify Changes**:
-   ```sql
-   SHOW VARIABLES LIKE 'innodb_buffer_pool_instances';
-   ```
-
-5. **Expected Output**:
-   **MySQL 8.4**:
-   ```plaintext
-   +-----------------------------+-------+
-   | Variable_name               | Value |
-   +-----------------------------+-------+
-   | innodb_buffer_pool_instances| 16    |
-   +-----------------------------+-------+
-   ```
-   **MySQL 8.0**:
-   ```plaintext
-   +-----------------------------+-------+
-   | Variable_name               | Value |
-   +-----------------------------+-------+
-   | innodb_buffer_pool_instances| 8     |
+   | innodb_buffer_pool_instances| 1     |
    +-----------------------------+-------+
    ```
 
