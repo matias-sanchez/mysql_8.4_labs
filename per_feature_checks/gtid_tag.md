@@ -162,24 +162,9 @@ SELECT GTID_SUBSET(
 ) AS Admin_GTID_Executed;
 ```
 
-**b. Cleanup and Test Recovery**
-
-1. **Simulate Data Loss**:
-   Drop a table on the replica:
-   ```sql
-   DROP TABLE data_table;
-   ```
-
-2. **Restore via GTID Tag**:
-   Use the GTID tag to identify and reapply missing transactions:
-   ```sql
-   START REPLICA UNTIL GTID_SUBSET('UUID:data_ops:1-5', @@global.gtid_executed);
-   ```
 
 #### **Conclusion**
 
 1. Tagged GTIDs simplify transaction categorization and monitoring.
 2. Unique GTID tags enhance debugging, disaster recovery, and replication management.
 3. Proper privilege configuration ensures secure and effective GTID tagging.
-
-This lab thoroughly demonstrates the use of tagged GTIDs in MySQL 8.4 replication, emphasizing their practical benefits and management techniques.
