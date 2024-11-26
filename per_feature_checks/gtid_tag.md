@@ -35,7 +35,7 @@ Using `anydbver`, deploy a master-replica setup with GTID replication enabled:
   anydbver list --namespace=$NAMESPACE
   ```
 
-- Access the master (`node0`) :
+- Access the master (`node0`):
   ```bash
   NAMESPACE='gtid_tag'
   anydbver exec node0 --namespace=$NAMESPACE mysql
@@ -55,53 +55,64 @@ UPDATE mysql.user SET host='%' WHERE user='root';
 FLUSH PRIVILEGES;
 ```
 
-**d. Verify GTID Configuration**
+**d. Start Replica**
 
-Check if GTIDs are enabled on both master and replica:
+On the replica (`node1`), execute:
 ```sql
-SHOW VARIABLES LIKE 'gtid_mode';
-SHOW VARIABLES LIKE 'enforce_gtid_consistency';
+STOP REPLICA;
+START REPLICA;
 ```
 
-Ensure both variables are set to `ON`. If not, modify `my.cnf` using:
-```bash
-anydbver exec node0 --namespace=$NAMESPACE -- bash -c "echo 'gtid_mode=ON' >> /etc/my.cnf"
-anydbver exec node0 --namespace=$NAMESPACE -- bash -c "echo 'enforce_gtid_consistency=ON' >> /etc/my.cnf"
-anydbver exec node0 --namespace=$NAMESPACE -- systemctl restart mysqld
+To verify replication status:
+```sql
+SHOW REPLICA STATUS\G
 ```
-
-Repeat for `node1`.
 
 ---
 
 #### **2. Testing Tagged GTIDs**
 
-**a. Create a Tagged Transaction on the Master**
+**a. Create a User with Required Privileges**
 
-Tag administrative transactions with `admin_ops`:
+On the master (`node0`), create a dedicated user for tagged GTID testing:
+```sql
+CREATE USER 'tag_user'@'%' IDENTIFIED BY 'password';
+GRANT CREATE, SELECT, INSERT, UPDATE, DELETE, TRANSACTION_GTID_TAG ON *.* TO 'tag_user'@'%';
+```
+
+Use the following command to connect as `tag_user`:
+```bash
+anydbver exec node0 --namespace=$NAMESPACE -- mysql -utag_user -ppassword
+```
+
+**b. Create Tagged Transactions**
+
+**Administrative Transactions**:
 ```sql
 SET gtid_next = 'AUTOMATIC:admin_ops';
-CREATE TABLE admin_table (id INT PRIMARY KEY, data VARCHAR(100));
-INSERT INTO admin_table VALUES (1, 'Admin Data');
+CREATE USER 'admin_user'@'%' IDENTIFIED BY 'securepassword';
+GRANT ALL PRIVILEGES ON *.* TO 'admin_user'@'%';
 SET gtid_next = AUTOMATIC;
 ```
 
-Tag data operations with `data_ops`:
+**Data Transactions**:
 ```sql
 SET gtid_next = 'AUTOMATIC:data_ops';
+CREATE DATABASE test_db;
+USE test_db;
 CREATE TABLE data_table (id INT PRIMARY KEY, data VARCHAR(100));
 INSERT INTO data_table VALUES (1, 'Data Operations');
 SET gtid_next = AUTOMATIC;
 ```
 
-**b. Validate Tagged Transactions**
+**c. Validate Tagged Transactions**
 
 Check GTID execution logs on the master:
 ```sql
 SELECT * FROM mysql.gtid_executed;
 ```
 
-Expected output:
+**Expected Output**:
 ```plaintext
 +--------------------------------------+----------------+--------------+-----------+
 | source_uuid                          | interval_start | interval_end | gtid_tag  |
@@ -111,50 +122,57 @@ Expected output:
 +--------------------------------------+----------------+--------------+-----------+
 ```
 
-**c. Verify Replication**
-
-On the replica (`node1`):
-- Confirm replication status:
-  ```sql
-  SHOW SLAVE STATUS\G
-  ```
-- Check if tagged transactions were replicated:
-  ```sql
-  SELECT * FROM mysql.gtid_executed;
-  ```
-
 ---
 
 #### **3. Testing Tagged GTID Behavior**
 
-**a. Conflict Testing**
+**a. Verify Replication**
 
-Attempt to re-use the same tag in a different transaction:
+On the replica (`node1`), check replication status:
+```sql
+SHOW REPLICA STATUS\G
+```
+
+Verify that tagged transactions were replicated:
+```sql
+SELECT * FROM mysql.gtid_executed;
+```
+
+**Expected Output**:
+```plaintext
++--------------------------------------+----------------+--------------+-----------+
+| source_uuid                          | interval_start | interval_end | gtid_tag  |
++--------------------------------------+----------------+--------------+-----------+
+| <UUID>                               |              1 |            1 | admin_ops |
+| <UUID>                               |              2 |            2 | data_ops  |
++--------------------------------------+----------------+--------------+-----------+
+```
+
+**b. Conflict Testing**
+
+Use the same database and tag a conflicting transaction:
 ```sql
 SET gtid_next = 'AUTOMATIC:data_ops';
+USE test_db;
 CREATE TABLE conflict_table (id INT PRIMARY KEY, data VARCHAR(100));
 SET gtid_next = AUTOMATIC;
 ```
 
-Expected behavior:
+**Expected Behavior**:
 - MySQL prevents overlapping GTIDs within the same UUID.
 
-**b. Restrict Tag Usage**
+**c. Restrict Tag Usage**
 
-Grant the `TRANSACTION_GTID_TAG` privilege to a user:
-```sql
-CREATE USER 'tag_user'@'%' IDENTIFIED BY 'password';
-GRANT TRANSACTION_GTID_TAG ON *.* TO 'tag_user'@'%';
-```
-
-Login as `tag_user` and try creating a tagged transaction:
+Login as `tag_user` and create a tagged transaction:
 ```sql
 SET gtid_next = 'AUTOMATIC:custom_tag';
+CREATE DATABASE user_db;
+USE user_db;
 CREATE TABLE user_table (id INT PRIMARY KEY, data VARCHAR(100));
 ```
 
-Expected behavior:
-- Successful execution with correct tagging.
+**Expected Behavior**:
+- Transaction executes successfully with the specified tag.
 
 ---
 
@@ -172,7 +190,7 @@ SELECT GTID_SUBSET(
 
 **b. Cleanup and Test Recovery**
 
-1. **Simulate Data Loss**: 
+1. **Simulate Data Loss**:
    Drop a table on the replica:
    ```sql
    DROP TABLE data_table;
@@ -181,44 +199,44 @@ SELECT GTID_SUBSET(
 2. **Restore via GTID Tag**:
    Use the GTID tag to identify and reapply missing transactions:
    ```sql
-   START SLAVE UNTIL GTID_SUBSET('UUID:data_ops:1-5', @@global.gtid_executed);
+   START REPLICA UNTIL GTID_SUBSET('UUID:data_ops:1-5', @@global.gtid_executed);
    ```
 
 ---
 
 #### **5. Monitoring with PMM**
 
-Use PMM (Percona Monitoring and Management) to monitor GTID transactions:
+**a. Deploy PMM Server**:
+```bash
+anydbver deploy pmm:latest --namespace=$NAMESPACE
+```
 
-1. Deploy PMM Server:
-   ```bash
-   anydbver deploy pmm:latest --namespace=$NAMESPACE
-   ```
+**b. Deploy PMM Client**:
+- For Master:
+  ```bash
+  anydbver deploy pmm-client --server=node0,mysql=node0 --namespace=$NAMESPACE
+  ```
+- For Replica:
+  ```bash
+  anydbver deploy pmm-client --server=node0,mysql=node1 --namespace=$NAMESPACE
+  ```
 
-2. Deploy PMM Client on Master and Replica:
-   ```bash
-   anydbver deploy pmm-client --server=node0,mysql=node0 --namespace=$NAMESPACE
-   anydbver deploy pmm-client --server=node0,mysql=node1 --namespace=$NAMESPACE
-   ```
-
-3. Add monitoring metrics:
-   - Enable replication metrics in PMM.
-   - Monitor GTID subsets via dashboards.
+**c. Monitor GTIDs**:
+- Enable replication metrics in PMM.
+- Use dashboards to observe tagged transactions and replication status.
 
 ---
 
 #### **6. Document Observations**
 
-**a. Transaction Logs:**
+**a. Transaction Logs**:
+- Analyze GTID logs from both master and replica:
+  ```sql
+  SELECT * FROM mysql.gtid_executed;
+  ```
 
-Record and analyze GTID logs from both master and replica:
-```sql
-SELECT * FROM mysql.gtid_executed;
-```
-
-**b. Test Output Summary:**
-
-Document outcomes of each test, including replication behavior, tag conflicts, and monitoring insights.
+**b. Test Output Summary**:
+- Record outcomes of replication, conflict resolution, and monitoring tests.
 
 ---
 
@@ -226,6 +244,6 @@ Document outcomes of each test, including replication behavior, tag conflicts, a
 
 1. Tagged GTIDs simplify transaction categorization and monitoring.
 2. Unique GTID tags enhance debugging, disaster recovery, and replication management.
-3. Ensure correct privilege assignments and tag uniqueness to avoid conflicts.
+3. Proper privilege configuration ensures secure and effective GTID tagging.
 
-This lab comprehensively tests and validates tagged GTIDs in MySQL 8.4 replication, offering insights into their practical implications.
+This lab thoroughly demonstrates the use of tagged GTIDs in MySQL 8.4 replication, emphasizing their practical benefits and management techniques.
