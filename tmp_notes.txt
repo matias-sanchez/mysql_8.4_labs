@@ -1,0 +1,167 @@
+anydbver deploy pmm:2.42.0,docker-image,port=12443
+
+anydbver deploy node1 ps:8.0 pmm-client:2.42.0-6,server=node0,mysql=node1 sysbench:latest,mysql=node1 --keep
+
+anydbver deploy node2 ps:8.4 pmm-client:2.42.0-6,server=node0,mysql=node2 sysbench:latest,mysql=node2 --keep
+
+---
+
+tunnel with 
+ssh -L 12443:localhost:12443 highram2
+
+bug?  https://bugs.mysql.com/bug.php?id=115328 report
+
+
+---
+
+connect 
+
+https://localhost:12443
+
+user admin password verysecretpassword1^
+
+on each one
+
+
+
+CREATE DATABASE sbtest;
+
+
+
+
+# For MySQL 8.0
+anydbver exec node1 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=32  prepare
+
+# For MySQL 8.4
+anydbver exec node2 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=32 prepare
+
+
+
+# MySQL 8.0
+sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=32 --time=600 --report-interval=10 run
+
+# MySQL 8.4
+sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=32 --time=600 --report-interval=10 run
+
+[matias.sanchez@support-02|prod ~]$ date
+Mon Nov 25 03:31:50 AM UTC 2024
+
+anydbver exec node1  mysql sbtest
+
+
+
+
+
+
+
+
+# MySQL 8.0
+anydbver exec node1 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=4 --time=600 --report-interval=10 run >> results_8.0.output
+
+
+# MySQL 8.0
+anydbver exec node1 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=8 --time=600 --report-interval=10 run >> results_8.0.output
+
+
+# MySQL 8.0
+anydbver exec node1 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=16 --time=600 --report-interval=10 run >> results_8.0.output
+
+
+# MySQL 8.0
+anydbver exec node1 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=24 --time=600 --report-interval=10 run >> results_8.0.output
+
+# MySQL 8.0
+anydbver exec node1 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=32 --time=600 --report-interval=10 run >> results_8.0.output
+
+
+
+
+
+# MySQL 8.4
+anydbver exec node2 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=4 --time=600 --report-interval=10 run >> results_8.4.output
+
+
+# MySQL 8.4
+anydbver exec node2 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=8 --time=600 --report-interval=10 run >> results_8.4.output
+
+
+# MySQL 8.4
+anydbver exec node2 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=16 --time=600 --report-interval=10 run >> results_8.4.output
+
+
+# MySQL 8.4
+anydbver exec node2 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=24 --time=600 --report-interval=10 run >> results_8.4.output
+
+# MySQL 8.4
+anydbver exec node2 -- sysbench /usr/share/sysbench/oltp_write_only.lua --mysql-host=127.0.0.1 \
+--mysql-user=root --mysql-password=verysecretpassword1^ --mysql-db=sbtest \
+--tables=32 --table-size=1000000 --threads=32 --time=600 --report-interval=10 run >> results_8.4.output
+
+
+
+sudo docker stop mypercona84 && \
+sudo docker rm mypercona84
+sudo rm -Rf ~/lab/mysql84
+mkdir -p ~/lab/mysql84/{logs,data}
+sudo chmod -R 777 ~/lab/mysql84/{logs,data}
+sudo docker run --rm \
+  -v ~/lab/mysql84/data:/host-mysql-data \
+  -v ~/lab/mysql84:/host-config \
+  percona-mysql-8.4 \
+  bash -c "cat /etc/my.cnf > /host-config/my.cnf && cp -R /var/lib/mysql/* /host-mysql-data"
+sudo docker run --name mypercona84 \
+  -d \
+  -p 33084:3306 \
+  -v ~/lab/mysql84/my.cnf:/etc/my.cnf \
+  -v ~/lab/mysql84/logs:/var/log \
+  -v ~/lab/mysql84/data:/var/lib/mysql \
+  --privileged=true \
+  --cpus=1 \
+  --cpuset-cpus=0 \
+  percona-mysql-8.4
+sleep 2
+sudo chmod +r ~/lab/mysql84/logs/mysqld.log
+
+
+
+show variables like '%innodb_buffer_pool_size%';
+show variables like '%innodb_buffer_pool_instances%';
+show variables like '%innodb_buffer_pool_chunk_size%';
+
+
+
+docker exec -it mypercona84 bash
+
+
+show variables like '%verbosi%';
+
+
+set global log_error_verbosity=3;
+
+(9663676416/134217728)/2

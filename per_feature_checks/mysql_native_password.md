@@ -358,3 +358,23 @@ WHERE
 
 2. **anydbver Impacts**:
    - By default, `anydbver` enables `mysql_native_password` in MySQL 8.4 for backward compatibility.
+
+
+
+
+
+Action required
+We need additional information to approve this account. Provide the information in Verification Center.
+*Once you submit the information, allow up to 3 business days for review.
+Account type
+Personal
+Bank country
+United States of America
+Bank name
+Thread Bank
+Account holder name
+Romeo November Software Solutions LLC
+Account number
+200000993139
+Routing
+064209588

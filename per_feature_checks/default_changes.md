@@ -729,9 +729,21 @@ This change ensures better alignment between buffer pool configuration and page 
 
 ---
 
-##### **D. `innodb_io_capacity`**
+### **D. `innodb_io_capacity`**
 
-- **Check Default Value in MySQL 8.0**:
+---
+
+#### **Overview**
+
+The `innodb_io_capacity` parameter defines the upper limit of IO operations (writes) that InnoDB can handle per second when flushing dirty pages and writing to the transaction log. It significantly impacts how well the database utilizes underlying disk performance, especially during heavy write workloads.
+
+In MySQL 8.4, the default value of `innodb_io_capacity` has increased from **200** (MySQL 8.0) to **10,000**, aligning with the capabilities of modern high-speed storage systems such as SSDs.
+
+---
+
+#### **Default Value Comparison**
+
+- **MySQL 8.0**:
   ```sql
   SELECT @@innodb_io_capacity;
   ```
@@ -744,7 +756,7 @@ This change ensures better alignment between buffer pool configuration and page 
   +------------------+
   ```
 
-- **Check Default Value in MySQL 8.4**:
+- **MySQL 8.4**:
   ```sql
   SELECT @@innodb_io_capacity;
   ```
@@ -757,8 +769,100 @@ This change ensures better alignment between buffer pool configuration and page 
   +------------------+
   ```
 
-- **Explanation**:
-  - Increased IO capacity in MySQL 8.4 supports better disk utilization for modern storage.
+---
+
+#### **Key Insights**
+
+1. **Default Increase**:
+   - MySQL 8.0: Static default of **200**, suitable for traditional spinning disks.
+   - MySQL 8.4: Increased to **10,000**, optimized for modern SSDs and NVMe storage.
+
+2. **Impact on Performance**:
+   - Higher IO capacity reduces delays in flushing dirty pages and improves responsiveness under heavy write workloads.
+   - Prevents IO bottlenecks by leveraging the full potential of fast storage devices.
+
+3. **Write-Heavy Workload Optimization**:
+   - Increasing `innodb_io_capacity` helps minimize transaction log IO bottlenecks.
+   - It is especially useful for databases with large buffer pools or frequent batch writes.
+
+4. **Dynamic Tuning**:
+   - The parameter should be tuned based on the actual IO capabilities of the storage system. Over-configuring can cause resource contention, while under-configuring leads to underutilized hardware.
+
+---
+
+#### **Simulation Steps**
+
+1. **Check Default Values**:
+   Run the following commands in MySQL 8.0 and MySQL 8.4 to observe the default values:
+   ```sql
+   SELECT @@innodb_io_capacity;
+   ```
+
+   **Expected Output**:
+   - **MySQL 8.0**:
+     ```plaintext
+     +------------------+
+     | @@innodb_io_capacity |
+     +------------------+
+     | 200              |
+     +------------------+
+     ```
+   - **MySQL 8.4**:
+     ```plaintext
+     +------------------+
+     | @@innodb_io_capacity |
+     +------------------+
+     | 10000            |
+     +------------------+
+     ```
+
+2. **Test with Write-Heavy Workload**:
+   Create a scenario to evaluate the impact of different `innodb_io_capacity` settings.
+
+   - **Create Sample Table**:
+     ```sql
+     CREATE TABLE test_io (id INT AUTO_INCREMENT PRIMARY KEY, data TEXT);
+     ```
+
+   - **Generate Write Load**:
+     ```sql
+     INSERT INTO test_io (data) SELECT REPEAT('a', 255) FROM dual CONNECT BY LEVEL <= 100000;
+     ```
+
+   - **Monitor IO Behavior**:
+     Use the following to observe flush activity:
+     ```sql
+     SHOW ENGINE INNODB STATUS\G
+     ```
+
+3. **Modify `innodb_io_capacity`**:
+   - Increase the value in MySQL 8.0 to observe changes in performance:
+     ```sql
+     SET GLOBAL innodb_io_capacity = 5000;
+     ```
+   - Compare the IO throughput before and after changes.
+
+4. **Reset to Defaults**:
+   Restore default values for further analysis:
+   ```sql
+   SET GLOBAL innodb_io_capacity = 200;  -- MySQL 8.0
+   SET GLOBAL innodb_io_capacity = 10000;  -- MySQL 8.4
+   ```
+
+---
+
+#### **Configuration Tips**
+
+1. **Storage-Specific Tuning**:
+   - For spinning disks, values between **200-1000** are recommended.
+   - For SSDs, consider values between **5000-20000**, based on disk performance and workload.
+
+2. **Monitor Performance**:
+   - Use `SHOW ENGINE INNODB STATUS` to observe `Modified DB pages` and flushing behavior.
+   - Ensure that the setting does not overwhelm the IO subsystem, leading to performance degradation.
+
+3. **Dynamic IO Balancing**:
+   - Combine `innodb_io_capacity` with related parameters like `innodb_io_capacity_max` to handle bursty workloads more effectively.
 
 ---
 
@@ -795,32 +899,6 @@ This change ensures better alignment between buffer pool configuration and page 
 
 ---
 
-#### **3. Performance Testing (Optional)**
-
-- **Test Impact of `innodb_adaptive_hash_index` on Queries**
-
-1. **Create a Sample Table**:
-   ```sql
-   CREATE TABLE test_performance (
-       id INT AUTO_INCREMENT PRIMARY KEY,
-       data VARCHAR(255) NOT NULL
-   );
-   ```
-
-2. **Insert Data**:
-   ```sql
-   INSERT INTO test_performance (data) SELECT REPEAT('a', 255) FROM dual CONNECT BY LEVEL <= 100000;
-   ```
-
-3. **Run Query with Index Use**:
-   ```sql
-   SELECT * FROM test_performance WHERE data = 'a';
-   ```
-
-4. **Compare Execution Time in MySQL 8.0 (ON) vs. MySQL 8.4 (OFF)**:
-   - Note execution times and observe performance differences.
-
----
 
 #### **4. Monitoring and Validation**
 
