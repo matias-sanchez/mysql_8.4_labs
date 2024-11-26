@@ -31,12 +31,19 @@ Using `anydbver`, deploy a master-replica setup with GTID replication enabled:
 
 - Confirm both nodes are running:
   ```bash
+  NAMESPACE='gtid_tag'
   anydbver list --namespace=$NAMESPACE
   ```
 
-- Access the master and replica:
+- Access the master (`node0`) :
   ```bash
+  NAMESPACE='gtid_tag'
   anydbver exec node0 --namespace=$NAMESPACE mysql
+  ```
+
+- Access the replica (`node1`):
+  ```bash
+  NAMESPACE='gtid_tag'
   anydbver exec node1 --namespace=$NAMESPACE mysql
   ```
 
