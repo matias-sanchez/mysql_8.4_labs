@@ -148,35 +148,9 @@ SELECT * FROM mysql.gtid_executed;
 +--------------------------------------+----------------+--------------+-----------+
 ```
 
-**b. Conflict Testing**
-
-Use the same database and tag a conflicting transaction:
-```sql
-SET gtid_next = 'AUTOMATIC:data_ops';
-USE test_db;
-CREATE TABLE conflict_table (id INT PRIMARY KEY, data VARCHAR(100));
-SET gtid_next = AUTOMATIC;
-```
-
-**Expected Behavior**:
-- MySQL prevents overlapping GTIDs within the same UUID.
-
-**c. Restrict Tag Usage**
-
-Login as `tag_user` and create a tagged transaction:
-```sql
-SET gtid_next = 'AUTOMATIC:custom_tag';
-CREATE DATABASE user_db;
-USE user_db;
-CREATE TABLE user_table (id INT PRIMARY KEY, data VARCHAR(100));
-```
-
-**Expected Behavior**:
-- Transaction executes successfully with the specified tag.
-
 ---
 
-#### **4. Advanced Scenarios**
+#### **4. Test Scenarios**
 
 **a. Validate Replication Lag with GTID Tags**
 
@@ -201,44 +175,6 @@ SELECT GTID_SUBSET(
    ```sql
    START REPLICA UNTIL GTID_SUBSET('UUID:data_ops:1-5', @@global.gtid_executed);
    ```
-
----
-
-#### **5. Monitoring with PMM**
-
-**a. Deploy PMM Server**:
-```bash
-anydbver deploy pmm:latest --namespace=$NAMESPACE
-```
-
-**b. Deploy PMM Client**:
-- For Master:
-  ```bash
-  anydbver deploy pmm-client --server=node0,mysql=node0 --namespace=$NAMESPACE
-  ```
-- For Replica:
-  ```bash
-  anydbver deploy pmm-client --server=node0,mysql=node1 --namespace=$NAMESPACE
-  ```
-
-**c. Monitor GTIDs**:
-- Enable replication metrics in PMM.
-- Use dashboards to observe tagged transactions and replication status.
-
----
-
-#### **6. Document Observations**
-
-**a. Transaction Logs**:
-- Analyze GTID logs from both master and replica:
-  ```sql
-  SELECT * FROM mysql.gtid_executed;
-  ```
-
-**b. Test Output Summary**:
-- Record outcomes of replication, conflict resolution, and monitoring tests.
-
----
 
 #### **Conclusion**
 
