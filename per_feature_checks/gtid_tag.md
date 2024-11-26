@@ -77,7 +77,7 @@ SHOW REPLICA STATUS\G
 On the master (`node0`), create a dedicated user for tagged GTID testing:
 ```sql
 CREATE USER 'tag_user'@'%' IDENTIFIED BY 'password';
-GRANT CREATE, SELECT, INSERT, UPDATE, DELETE, TRANSACTION_GTID_TAG ON *.* TO 'tag_user'@'%';
+GRANT CREATE USER, GRANT OPTION, CREATE, SELECT, INSERT, UPDATE, DELETE, TRANSACTION_GTID_TAG, SYSTEM_VARIABLES_ADMIN ON *.* TO 'tag_user'@'%';
 ```
 
 Use the following command to connect as `tag_user`:
@@ -91,7 +91,7 @@ anydbver exec node0 --namespace=$NAMESPACE -- mysql -utag_user -ppassword
 ```sql
 SET gtid_next = 'AUTOMATIC:admin_ops';
 CREATE USER 'admin_user'@'%' IDENTIFIED BY 'securepassword';
-GRANT ALL PRIVILEGES ON *.* TO 'admin_user'@'%';
+GRANT SELECT ON *.* TO 'admin_user'@'%';
 SET gtid_next = AUTOMATIC;
 ```
 
