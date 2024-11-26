@@ -21,15 +21,10 @@ This lab demonstrates the functionality and implications of **Tagged GTIDs** in 
 
 Using `anydbver`, deploy a master-replica setup with GTID replication enabled:
 
-- Deploy Master (`node0`):
+- Deploy Master (`node0`) & Replica (`node1`):
   ```bash
-  NAMESPACE=gtid_test
-  anydbver deploy ps:8.4 --namespace=$NAMESPACE
-  ```
-
-- Deploy Replica (`node1`):
-  ```bash
-  anydbver deploy ps:8.4,master=node0 --namespace=$NAMESPACE
+  NAMESPACE='gtid_tag'
+  anydbver deploy ps:8.4 node1 ps:8.4,master=node0 --namespace=$NAMESPACE
   ```
 
 **b. Validate Deployment**
