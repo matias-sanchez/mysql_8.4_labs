@@ -1,0 +1,30 @@
+# Use AlmaLinux 8 as a base image (binary-compatible with RHEL)
+FROM almalinux:8
+
+# Set environment variables
+ENV container=docker
+
+# Update system and install necessary tools
+RUN yum -y update && \
+    yum -y install wget sudo curl yum-utils
+
+# Install the Percona repository
+RUN yum -y install https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+
+# Enable Percona Server 8.0 repository
+RUN percona-release enable-only ps-80 release
+
+# Disable the default MySQL module
+RUN yum -y module disable mysql
+
+# Install Percona Server 8.0
+RUN yum -y install percona-server-server
+
+# Initialize MySQL data directory
+RUN mysqld --initialize-insecure --user=mysql
+
+# Expose MySQL port
+EXPOSE 3306
+
+# Start MySQL and keep the container running
+CMD ["mysqld_safe"]
