@@ -151,11 +151,21 @@ defaults only
 
 ![alt text](image-10.png)
 
-Matching io_capaciti's, innodb
+Matching io_capaciti's, innodb_log_buffer_size, innodb_doublewrite_pages
 
 ![alt text](image-11.png)
 
 ![alt text](image-12.png)
+
+![alt text](image-13.png)
+
+![alt text](image-14.png)
+
+![alt text](image-15.png)
+
+![alt text](image-16.png)
+
+![alt text](image-17.png)
 
 ---
 
