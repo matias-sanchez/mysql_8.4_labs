@@ -68,6 +68,7 @@ This lab aims to analyze the performance differences between MySQL 8.0 and MySQL
 
 2. **Create a Dedicated Sysbench User**:
    ```sql
+   CREATE DATABASE sbtest;
    CREATE USER 'sbtest'@'127.0.0.1' IDENTIFIED BY 'sbtest_password';
    GRANT ALL PRIVILEGES ON sbtest.* TO 'sbtest'@'127.0.0.1';
    FLUSH PRIVILEGES;
@@ -143,10 +144,18 @@ This lab aims to analyze the performance differences between MySQL 8.0 and MySQL
 ---
 
 #### **3. Results**
-![alt text](image-7.png)
 
-![alt text](image-8.png)
+defaults only
 
+![alt text](image-9.png)
+
+![alt text](image-10.png)
+
+Matching io_capaciti's, innodb
+
+![alt text](image-11.png)
+
+![alt text](image-12.png)
 
 ---
 
